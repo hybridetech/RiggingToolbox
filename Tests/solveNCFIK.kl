@@ -1,0 +1,29 @@
+
+require RiggingToolbox;
+
+operator entry(){
+
+   	Xfo basePose[];
+   	basePose.resize(4);
+    for(Integer i=0; i<4; i++){
+    	if(i==0)
+    		basePose[i] = Xfo(Vec3(0.0, 10.0, 0.0), Quat(Euler(0.0, 0.0, HALF_PI)));
+    	else
+    		basePose[i] = basePose[i-1] * Xfo(Vec3(Float64(5-i) * 2.5, 0.0, 0.0), Quat(Euler(0.0,0.0, Float64(i+2) * 0.4)));
+    }
+    Vec3 goal();
+
+    for(Integer i=0; i<20; i++){
+    	goal.set(0.0, cos((Float64(i)/20.0) * PI) * 3.0, sin((Float64(i)/20.0) * HALF_PI) * 2.0);
+        Xfo ikpose[];
+        ikpose = solveNCFIK(basePose, goal);
+        String output = i + " basePose:";
+        for (Integer j=0; j<basePose.size(); j++)
+          output += unitTestPrint(basePose[j]);
+        output += " ikpose:";
+        for (Integer j=0; j<ikpose.size(); j++)
+          output += unitTestPrint(ikpose[j]);
+        report(output);
+    }
+}
+

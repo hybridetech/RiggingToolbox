@@ -1,0 +1,17 @@
+#
+# Copyright 2010-2014 Fabric Software Inc. All rights reserved.
+#
+
+Import(
+	'parentEnv',
+	'ExtKLTests',
+	'riggingToolboxExt'
+	)
+
+env = parentEnv.CloneSubStage('RiggingToolboxTest')
+
+riggingToolboxExtTests = ExtKLTests(env.Glob('*.kl'))
+env.Depends(riggingToolboxExtTests, riggingToolboxExt)
+env.Alias('riggingToolboxExtTests', riggingToolboxExtTests)
+Return('riggingToolboxExtTests')
+

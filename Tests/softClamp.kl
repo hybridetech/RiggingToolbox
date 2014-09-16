@@ -1,0 +1,17 @@
+
+require RiggingToolbox;
+
+operator entry(){
+   
+    Scalar minVal = 3.0;
+    Vec2 minValSoftening(2.0, 3.0);
+    Scalar maxVal = 15.0;
+    Vec2 maxValSoftening(3.0, 5.0);
+
+    for(Integer i=0; i<28; i++){
+        Scalar inval = Scalar(i);
+        Scalar outval = softClamp(inval, minVal, minValSoftening, maxVal, maxValSoftening);
+        report("inval:" + inval + " outval:" + outval);
+    }
+}
+

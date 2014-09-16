@@ -1,0 +1,42 @@
+
+require RiggingToolbox;
+
+operator entry(){
+
+  Xfo inpivotXfo(Vec3(0.0, 10.0, 0.0));
+  Scalar pivotLength = 5.0;
+  Vec3 intarget(0.0, 0.0, 0.0);
+  Vec3 pivotLocalAxis(1.0, 0.0, 0.0);
+
+  Scalar inVal = 3.0;
+  Vec2 minValSoftening(2.0, 3.0);
+  Scalar maxVal = 15.0;
+  Vec2 maxValSoftening(3.0, 5.0);
+
+  Scalar minDistLength = 6.0;
+  Vec2 minDistLengthSoftening(2.0, 3.0);
+  Scalar maxDistLength = 12.0;
+  Vec2 maxDistLengthSoftening(3.0, 5.0);
+  Scalar maxDeltaAngle = 0.5;
+  Scalar maxDeltaAngleSoftening = 0.1;
+
+  for(Integer i=2; i<20; i++){
+    inpivotXfo.tr.y = Scalar(i);
+    Xfo iopivotXfo = inpivotXfo;
+    Vec3 iotarget = intarget;
+    Scalar outPivotDist = pivotDistanceLimit(
+      iopivotXfo,
+      pivotLength,
+      iotarget,
+      pivotLocalAxis,
+      minDistLength,
+      minDistLengthSoftening,
+      maxDistLength,
+      maxDistLengthSoftening,
+      maxDeltaAngle, 
+      maxDeltaAngleSoftening
+      );
+    report("inpivotXfo:" + inpivotXfo + " iopivotXfo:" + iopivotXfo + " outPivotDist:" + outPivotDist + " iotarget:" + iotarget);
+  }
+}
+

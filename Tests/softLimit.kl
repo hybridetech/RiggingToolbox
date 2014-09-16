@@ -1,0 +1,15 @@
+
+require RiggingToolbox;
+
+operator entry(){
+
+    Scalar maxVal = 10.0;
+    Vec2 maxValSoftening(3.0, 3.0);
+
+    for(Integer i=0; i<20; i++){
+        Scalar inval = Scalar(i);
+        Scalar outval = softLimit(inval, maxVal, maxValSoftening);
+        report("inval:" + inval + " outval:" + outval);
+    }
+}
+
