@@ -1,0 +1,260 @@
+/*
+ *  Copyright 2010-2013 Fabric Engine Inc. All rights reserved.
+ */
+
+/**
+The :ref:`bezierxfo` represents a bezier interpolated curve. Each control point is expressed as a full :ref:`xfo`. The BezierXfo uses the X axis of each control transform for projecting the tangents, while using the control transforms scaling for the tangent length in conjunction with the tangentLength struct member.
+
+Example
+------------
+
+.. code-block:: kl
+
+    Xfo a, b;
+    a.tr = Vec3(-5, 5, 0);
+    b.tr = Vec3(5, -5, 0);
+
+    // construct the curve
+    BezierXfo curve;
+    curve.tangentLength = 3.0;
+    curve.push(a);
+    curve.push(b);
+
+    // project a transform in the middle
+    Xfo center = curve.project(0.5);
+
+    // project a regularly placed array
+    Xfo xfos[] = curve.projectArray(20);
+*/
+
+require Math;
+require Animation;
+
+const Integer bezierXfoMultiplier = 5; // multiplier for curve resampling
+
+struct BezierXfo{
+  Xfo knots[];
+  Scalar tangentLength;
+  Boolean alignOnTangent;
+};
+
+// default constructor
+inline BezierXfo() {
+  this.knots.resize(0);
+  this.tangentLength = 1.0;
+  this.alignOnTangent = true;
+}
+
+// constructor for a two knot bezier
+inline BezierXfo(Xfo a, Xfo b) {
+  this.knots.resize(2);
+  this.knots[0] = a;
+  this.knots[1] = b;
+  this.tangentLength = 1.0;
+}
+
+// adds a control xfo to the curve
+inline BezierXfo.push!(Xfo knot) {
+  this.knots.push(knot);
+}
+
+// computes the length of the bezier curve based on a sampling value, start and end u values
+function Scalar BezierXfo.length(Size samples, Scalar start, Scalar end) {
+
+  if(this.knots.size() <= 1)
+    return 0.0;
+
+  // resample the curve using more knots
+  Xfo xfos[] = this.projectArray(this.knots.size() * samples, start, end);
+
+  Scalar result = 0.0;
+  for(Size i=1;i<xfos.size();i++) {
+    Vec3 v = xfos[i].tr - xfos[i-1].tr;
+    result += v.length();
+  }
+  return result;
+}
+
+// computes the length of the bezier curve based on a sampling value
+function Scalar BezierXfo.length(Size samples) {
+  return this.length(samples, 0.0, 1.0);
+}
+
+// computes the length of the bezier curve based on 32 samples per segment
+function Scalar BezierXfo.length() {
+  return this.length(32);
+}
+
+// projects a Xfo onto the curve, based
+// on the provided ratio (0.0 to 1.0).
+inline Xfo BezierXfo.project(Scalar ratio) {
+  if(this.knots.size() == 0)
+    return Xfo();
+  if(this.knots.size() == 1)
+    return this.knots[0];
+
+  Size nbSegments = this.knots.size()-1;
+  Scalar uPerSegment = 1.0 / Scalar(nbSegments);
+  Index segment = floor(ratio/uPerSegment);
+  if(segment >= nbSegments)
+    segment = nbSegments - 1;
+
+  Xfo result;
+
+  Scalar u = (ratio - Scalar(segment) * uPerSegment) / uPerSegment;
+  if(this.tangentLength <= 0.0) {
+    result.tr = this.knots[segment].tr.linearInterpolate(this.knots[segment+1].tr, u);
+  } else {
+    Vec3 a = this.knots[segment].tr;
+    Vec3 b = this.knots[segment].transformVector(Vec3(this.tangentLength, 0, 0));
+    Vec3 c = this.knots[segment+1].transformVector(Vec3(-this.tangentLength, 0, 0));
+    Vec3 d = this.knots[segment+1].tr;
+
+    Vec3 ab = a.linearInterpolate(b, u);
+    Vec3 bc = b.linearInterpolate(c, u);
+    Vec3 cd = c.linearInterpolate(d, u);
+    Vec3 abbc = ab.linearInterpolate(bc, u);
+    Vec3 bccd = bc.linearInterpolate(cd, u);
+    
+    result.tr = abbc.linearInterpolate(bccd, u);
+  }
+  result.sc = this.knots[segment].sc.linearInterpolate(this.knots[segment+1].sc, u);
+  result.ori = this.knots[segment].ori.sphericalLinearInterpolate(this.knots[segment+1].ori, u);
+  return result;
+}
+
+operator projectArrayTask(Index index, BezierXfo bezier, Scalar start, Scalar step, io Xfo xfos[], io Scalar uValues[]) {
+  uValues[index] = start + step * Scalar(index);
+  xfos[index] = bezier.project(uValues[index]);
+}
+
+// returns an array of projected, regularly placed
+// transforms, using start and end as the range (0.0 - 1.0).
+inline Xfo[] BezierXfo.projectArray(Size count, Scalar start, Scalar end) {
+  Xfo result[];
+  if(count == 0)
+    return result;
+  if(this.knots.size() == 1) {
+    result.push(this.project(start));
+    return result;
+  }
+
+  Scalar step = (end - start) / Scalar(count * bezierXfoMultiplier - 1);
+
+  Xfo irregular[];
+  Scalar uValues[];
+  irregular.resize(count * bezierXfoMultiplier);
+  uValues.resize(count * bezierXfoMultiplier);
+  // projectArrayTask<<<irregular.size()>>>(this, start, step, irregular, uValues);
+  Scalar distances[];
+  distances.resize(count * bezierXfoMultiplier);
+  distances[0] = 0.0;
+  for(Size i=0;i<irregular.size();i++)
+  {
+    projectArrayTask(i, this, start, step, irregular, uValues);
+    if(i>0)
+      distances[i] = distances[i-1] + (irregular[i].tr.subtract(irregular[i-1].tr).length());
+  }
+
+  result.resize(count);
+  result[0] = irregular[0];
+  result[count-1] = irregular[irregular.size()-1];
+
+  step = distances[distances.size()-1] / Scalar(count-1);
+
+  Scalar offset = start + step;
+  Index resultIndex = 1;
+  Index index = 0;
+  while(resultIndex < result.size()) {
+    while(distances[index+1] < offset) {
+      index++;
+      if(index == distances.size()-1) {
+        index = distances.size() - 2;
+        break;
+      }
+    }
+    Scalar a = distances[index+1] - distances[index];
+    Scalar b = offset - distances[index];
+    Scalar blend = b / a;
+
+    result[resultIndex].tr = irregular[index].tr.linearInterpolate(irregular[index+1].tr, blend);
+    result[resultIndex].ori = irregular[index].ori.sphericalLinearInterpolate(irregular[index+1].ori, blend);
+    result[resultIndex].sc = irregular[index].sc.linearInterpolate(irregular[index+1].sc, blend);
+    resultIndex++;
+    offset += step;
+    if(resultIndex == result.size()-1)
+      break;
+  } 
+
+  if(this.alignOnTangent) {
+    for(Size i=0;i<result.size();i++) {
+      Vec3 tangent;
+      if(i == 0)
+        tangent = (result[i+1].tr - result[i].tr).unit();
+      else if(i == result.size()-1)
+        tangent = (result[i].tr - result[i-1].tr).unit();
+      else
+        tangent = (result[i+1].tr - result[i-1].tr).unit();
+
+      result[i].ori.setFromDirectionAndUpvector(tangent, result[i].ori.getYaxis());
+
+      Quat oriOffset;
+      oriOffset.setFromAxisAndAngle(Vec3(0.0, 1.0, 0.0), -HALF_PI);
+      result[i].ori = result[i].ori * oriOffset;
+    }
+  }
+
+  return result;
+}
+
+// overloaded version using 0.0 and 1.0 for start and end.
+inline Xfo[] BezierXfo.projectArray(Size count) {
+  return this.projectArray(count, 0.0, 1.0);
+}
+
+// generates a regularly placed new knot array
+function Xfo[] BezierXfo.projectRegularly(Size count, Size samples, Scalar maxLength) {
+
+  if(this.knots.size() <= 1)
+    return this.knots;
+
+  // resample the curve using more knots
+  Xfo xfos[] = this.projectArray(count * samples, 0.0, 1.0);
+
+  // compute segment wise total length
+  // to be able to perform the reprojection
+  Scalar lengths[];
+  lengths.resize(xfos.size());
+  for(Size i=1;i<xfos.size();i++) {
+    Vec3 v = xfos[i].tr - xfos[i-1].tr;
+    lengths[i] = lengths[i-1] + v.length();
+  }
+
+  // clamp to the maxLength
+  Scalar currLength = lengths[lengths.size()-1];
+  Scalar lengthStep = Math_min(maxLength > 0 ? maxLength : 100000.0, currLength) / Scalar(count-1);
+
+  Xfo result[];
+  result.resize(count);
+  result[0] = this.knots[0];
+  
+  Size knotOffset = 0;
+
+  // the first element is 0, let's start at the second
+  for(Size i=1;i<result.size();i++) {
+    Scalar lengthForKnot = lengthStep * Scalar(i);
+    while(knotOffset < lengths.size() && lengths[knotOffset] < lengthForKnot)
+      knotOffset++;
+    Scalar lMin = lengths[knotOffset-1];
+    Scalar lMax = lengths[knotOffset];
+
+    Scalar u = (lengthForKnot - lMin) / (lMax - lMin);
+    u = Math_clamp(u, 0.0, 1.0);
+
+    result[i].tr = xfos[knotOffset-1].tr.linearInterpolate(xfos[knotOffset].tr, u);
+    result[i].sc = xfos[knotOffset-1].sc.linearInterpolate(xfos[knotOffset].sc, u);
+    result[i].ori = xfos[knotOffset-1].ori.sphericalLinearInterpolate(xfos[knotOffset].ori, u);
+  }
+
+  return result;
+}

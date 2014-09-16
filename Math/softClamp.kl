@@ -1,0 +1,72 @@
+/*
+ *  Copyright 2010-2013 Fabric Engine Inc. All rights reserved.
+ */
+
+/**
+The :ref:`softClamp`  computes a clamp using a bezier curve that is modulated between 2 values ranges. 
+
+Example
+---------
+
+.. code-block:: kl
+
+    Scalar minVal = 3.0;
+    Vec2 minValSoftening(2.0, 3.0);
+    Scalar maxVal = 15.0;
+    Vec2 maxValSoftening(3.0, 5.0);
+
+    for(Integer i=0; i<28; i++){
+        Scalar inval = Scalar(i);
+        Scalar outval = softClamp(inval, minVal, minValSoftening, maxVal, maxValSoftening);
+        report("inval:" + inval + " outval:" + outval);
+    }
+    
+ */
+
+require Math;
+require Animation;
+
+
+function Scalar softClamp(
+  Scalar val,
+  Scalar minVal,
+  Vec2 minValSoftening,
+  Scalar maxVal,
+  Vec2 maxValSoftening
+) {
+  Keyframe key1, key2;
+
+  if (val < (minVal + minValSoftening.y)) {
+    if (val < (minVal - minValSoftening.x)) {
+      return minVal;
+    }
+
+    key1.time = minVal + minValSoftening.y;
+    key1.value = minVal + minValSoftening.y;
+    key1.inTangent.y = -1.0;
+
+    key2.time = minVal - minValSoftening.x;
+    key2.value = minVal;
+    key2.outTangent.y = 0;
+
+    return key2.interpolate(key1, val);
+  }
+  else if (val > (maxVal - maxValSoftening.x)) {
+    if (val > (maxVal + maxValSoftening.y)) {
+      return maxVal;
+    }
+    key1.time = maxVal - maxValSoftening.x;
+    key1.value = maxVal - maxValSoftening.x;
+    key1.outTangent.y = 1.0;
+
+    key2.time = maxVal + maxValSoftening.y;
+    key2.value = maxVal;
+    key2.inTangent.y = 0;
+
+    return key1.interpolate(key2, val);
+  }
+  else {
+    return val;
+  }
+}
+

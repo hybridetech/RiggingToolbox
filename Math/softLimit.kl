@@ -1,0 +1,54 @@
+/*
+ *  Copyright 2010-2013 Fabric Engine Inc. All rights reserved.
+ */
+
+/**
+The :ref:`softLimit`  computes a limit using a bezier curve that is modulated over a value range. 
+
+
+Example
+---------
+
+.. code-block:: kl
+
+    Scalar maxVal = 10.0;
+    Vec2 maxValSoftening(3.0, 3.0);
+
+    for(Integer i=0; i<20; i++){
+        Scalar inval = Scalar(i);
+        Scalar outval = softLimit(inval, maxVal, maxValSoftening);
+        report("inval:" + inval + " outval:" + outval);
+    }
+    
+ */
+require Math;
+require Animation;
+
+function Scalar softLimit(
+  Scalar val,
+  Scalar maxVal,
+  Vec2 maxValSoftening
+) {
+  Keyframe key1, key2;
+
+  if (val > (maxVal - maxValSoftening.x)) {
+    if (val > (maxVal + maxValSoftening.y)) {
+      return maxVal;
+    }
+
+    key1.time = maxVal - maxValSoftening.x;
+    key1.value = maxVal - maxValSoftening.x;
+    key1.outTangent.x = maxValSoftening.x * 0.5;
+    key1.outTangent.y = maxValSoftening.x * 0.5;
+
+    key2.time = maxVal + maxValSoftening.y;
+    key2.value = maxVal;
+    key2.inTangent.x = maxValSoftening.y * - 0.5;
+    key2.inTangent.y = 0;
+
+    return key1.interpolate(key2, val);
+  }
+  else {
+    return val;
+  }
+}

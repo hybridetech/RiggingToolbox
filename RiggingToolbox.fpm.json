@@ -1,0 +1,12 @@
+{
+  "code": [
+    "Math/bezierXfo.kl",
+    "Math/softLimit.kl",
+    "Math/softClamp.kl",
+    "Math/pivotDistanceLimit.kl",
+    "Kinematics/solveNCFIK.kl",
+    "Deformers/blendShapes.kl",
+    "Deformers/deltaMush.kl",
+    "Deformers/skinning.kl"
+  ]
+}

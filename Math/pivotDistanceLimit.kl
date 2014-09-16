@@ -1,0 +1,139 @@
+/*
+ *  Copyright 2010-2013 Fabric Engine Inc. All rights reserved.
+ */
+
+/**
+The :ref:`pivotDistanceLimit`  computes a rotation to an Xfo that rotates the pivot such that a given local offset tip position does not exceed a specified distance to a goal.
+
+     pivot vector
+  ---------------|_
+                 |
+                 |  } min/max line Length
+                 |_
+                 |
+                 x
+
+The pivot is usefull for cases such as automatic clavicles and heel lifts. 
+For example, in the case of a clavicle, the distance from the shoulder to the wrist is the line, and the clavicle is the pivot.
+As the wrist moves away from the shoulder, the distance will reach its maximum length(where the IK chain would stan straight).
+The pivotDistanceLimit enables the clavicle to pivot as the maximum distance is reached, instead of snapping straight.
+
+Similarly, the ankle and pivot around the ball of the foot, when the distance from the ball to the hip reaches its limit. 
+
+This generic helper method can be used in a range of rigging problems. 
+
+
+Example
+---------
+
+.. code-block:: kl
+
+  Xfo inpivotXfo(Vec3(0.0, 10.0, 0.0));
+  Scalar pivotLength = 5.0;
+  Vec3 intarget(0.0, 0.0, 0.0);
+  Vec3 pivotLocalAxis(1.0, 0.0, 0.0);
+
+  Scalar inVal = 3.0;
+  Vec2 minValSoftening(2.0, 3.0);
+  Scalar maxVal = 15.0;
+  Vec2 maxValSoftening(3.0, 5.0);
+
+  Scalar minDistLength = 6.0;
+  Vec2 minDistLengthSoftening(2.0, 3.0);
+  Scalar maxDistLength = 12.0;
+  Vec2 maxDistLengthSoftening(3.0, 5.0);
+  Scalar maxDeltaAngle = 0.5;
+  Scalar maxDeltaAngleSoftening = 0.1;
+
+  for(Integer i=2; i<20; i++){
+    inpivotXfo.tr.y = Scalar(i);
+    Xfo iopivotXfo = inpivotXfo;
+    Vec3 iotarget = intarget;
+    Scalar outPivotDist = pivotDistanceLimit(
+      iopivotXfo,
+      pivotLength,
+      iotarget,
+      pivotLocalAxis,
+      minDistLength,
+      minDistLengthSoftening,
+      maxDistLength,
+      maxDistLengthSoftening,
+      maxDeltaAngle, 
+      maxDeltaAngleSoftening
+      );
+    report("inpivotXfo:" + inpivotXfo + " iopivotXfo:" + iopivotXfo + " outPivotDist:" + outPivotDist + " iotarget:" + iotarget);
+  }
+  
+ */
+
+require Math;
+require Animation;
+
+function Scalar pivotDistanceLimit(
+  io Xfo pivotXfo,
+  in Scalar pivotLength,
+  io Vec3 target,
+  in Vec3 pivotLocalAxis,
+
+  in Scalar minDistLength,
+  in Vec2 minDistLengthSoftening,
+  in Scalar maxDistLength,
+  in Vec2 maxDistLengthSoftening,
+  
+  in Scalar maxDeltaAngle,
+  in Scalar maxDeltaAngleSoftening
+) {
+
+  Vec3 vecToTarget, pivotLengthVector, bendAxis;
+  Scalar distBoneBaseToTarget, distBoneTipToTarget, newDistBoneTipToTarget;
+
+  vecToTarget = target - pivotXfo.tr;
+  distBoneBaseToTarget = vecToTarget.length();
+  vecToTarget *= 1.0 / distBoneBaseToTarget;
+
+  pivotLengthVector = pivotXfo.ori.rotateVector(pivotLocalAxis);
+  distBoneTipToTarget = (pivotXfo.tr + (pivotLengthVector * pivotLength)).distanceTo(target);
+
+  newDistBoneTipToTarget = softClamp(
+    distBoneTipToTarget,
+    minDistLength,
+    minDistLengthSoftening,
+    maxDistLength,
+    maxDistLengthSoftening
+  );
+
+  if (abs(newDistBoneTipToTarget - distBoneTipToTarget) > 0.001) {
+
+    // this is the current angle of the pivot.
+    Scalar fkBoneAngle = acos(pivotLengthVector.dot(vecToTarget));
+
+    // Use trigonometry to determine the ikBoneAngle
+    // Law of cosines. a = BoneLength; b = newDistBoneTipToTarget; c = newDistBoneTipToTarget;
+    Scalar a = pivotLength;
+    Scalar b = distBoneBaseToTarget;
+    Scalar c = newDistBoneTipToTarget;
+    
+    Scalar ikBoneAngle = acos(Math_clamp(((a * a) + (b * b) - (c * c)) / (2.0 * a * b), - 1.0, 1.0));
+
+    // Subtract off the current angle the pivot has with the vecToTarget to keep the delta
+    Scalar deltaBoneAngle = (fkBoneAngle - ikBoneAngle);
+    
+    deltaBoneAngle = softLimit(
+      deltaBoneAngle,
+      maxDeltaAngle,
+      Vec2(maxDeltaAngle-maxDeltaAngleSoftening, maxDeltaAngle+maxDeltaAngleSoftening)
+    );
+
+    bendAxis = pivotLengthVector.cross(vecToTarget);
+    
+    Quat offset;
+    offset.setFromAxisAndAngle(bendAxis, deltaBoneAngle);
+    pivotXfo.ori = offset * pivotXfo.ori;
+    
+    pivotLengthVector = pivotXfo.ori.rotateVector(pivotLocalAxis);
+    Vec3 newBonetip = (pivotXfo.tr + (pivotLengthVector * pivotLength));
+    vecToTarget = (target - newBonetip).unit();
+    target = newBonetip + (vecToTarget * newDistBoneTipToTarget);
+  }
+  return newDistBoneTipToTarget;
+}
