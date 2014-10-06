@@ -1,0 +1,472 @@
+
+
+/*
+ *  Copyright 2010-2013 Fabric Engine Inc. All rights reserved.
+ */
+
+/**
+The :ref:`SkinningAttributePaintManipulator` is based on the :ref:`SurfacePaintManipulator' and provides an example of how to paint multi-channel weightmaps. This example manipulator can be used as a basis for skin weight painting tool.
+
+*/
+
+
+require Singletons;
+require InlineDrawing;
+require Geometry;
+
+
+//////////////////////////////////////
+// SkinningAttributePaintManipulator_PaintData
+//
+
+struct SkinningAttributePaintManipulator_PaintData {
+    PolygonMesh mesh;
+    SkinningAttribute skinningAttr;
+    ColorAttribute displayAttr;
+    Color deformerColors[];
+    Integer pointIds[];
+    LocalL16ScalarArray oldWeightValues[];
+    LocalL16UInt32Array oldIndexValues[];
+    LocalL16ScalarArray newWeightValues[];
+    LocalL16UInt32Array newIndexValues[];
+};
+
+function SkinningAttributePaintManipulator_PaintData(
+  PolygonMesh mesh, 
+  SkinningAttribute skinningAttr, 
+  ColorAttribute displayAttr,
+  Color deformerColors[],
+  Integer pointIds[]
+){
+    this.mesh = mesh;
+    this.skinningAttr = skinningAttr;
+    this.displayAttr = displayAttr;
+    this.deformerColors = deformerColors;
+
+    this.pointIds = pointIds;
+    this.oldWeightValues.resize(pointIds.size);
+    this.oldIndexValues.resize(pointIds.size);
+    this.newWeightValues.resize(pointIds.size);
+    this.newIndexValues.resize(pointIds.size);
+}
+
+// Merge the new patin data into the existing paint data to create one set that can be undone/redone
+function SkinningAttributePaintManipulator_PaintData.mergeIn!(SkinningAttributePaintManipulator_PaintData paintData){
+    for (Integer i = 0; i < paintData.pointIds.size(); i++) {
+        Integer id = -1;
+        for (Integer j = 0; j < this.pointIds.size(); j++) {
+            if(paintData.pointIds[i] == this.pointIds[j]){
+                id = j;
+                break;
+            }
+        }
+        if(id != -1){
+            this.newWeightValues[id] = paintData.newWeightValues[i];
+            this.newIndexValues[id] = paintData.newIndexValues[i];
+        }
+        else{
+            this.pointIds.push(paintData.pointIds[i]);
+            this.oldWeightValues.push(paintData.oldWeightValues[i]);
+            this.oldIndexValues.push(paintData.oldIndexValues[i]);
+            this.newWeightValues.push(paintData.newWeightValues[i]);
+            this.newIndexValues.push(paintData.newIndexValues[i]);
+        }
+    }
+}
+
+function SkinningAttributePaintManipulator_PaintData.doAction!(){
+
+    Ref<ScalarConstantArrayAttribute> skinningAttrRef = this.skinningAttr;
+    Ref<ColorAttribute> displayAttrRef = this.displayAttr;
+    for (Integer i = 0; i < this.pointIds.size(); i++) {
+        this.mesh.setPointAttribute(this.pointIds[i], skinningAttrRef, this.newIndexValues[i], this.newWeightValues[i]);
+
+        Color color(0.0, 0.0, 0.0, 0.0);
+        for (Integer j = 0; j < this.newWeightValues[i].size(); j++) {
+            Size index = this.newIndexValues[i].get(j);
+            color += this.deformerColors[index] * this.newWeightValues[i].get(j);
+        }
+        this.mesh.setPointAttribute(this.pointIds[i], displayAttrRef, color);
+    }
+    skinningAttrRef.incrementVersion();
+    displayAttrRef.incrementVersion();
+}
+
+
+function SkinningAttributePaintManipulator_PaintData.undoAction!(){
+    Ref<ScalarConstantArrayAttribute> skinningAttrRef = this.skinningAttr;
+    Ref<ColorAttribute> displayAttrRef = this.displayAttr;
+    for (Integer i = 0; i < this.pointIds.size(); i++) {
+        this.mesh.setPointAttribute(this.pointIds[i], skinningAttrRef, this.oldIndexValues[i], this.oldWeightValues[i]);
+
+        Color color(0.0, 0.0, 0.0, 0.0);
+        for (Integer j = 0; j < this.oldWeightValues[i].size(); j++) {
+            Size index = this.oldIndexValues[i].get(j);
+            color += this.deformerColors[index] * this.oldWeightValues[i].get(j);
+        }
+        this.mesh.setPointAttribute(this.pointIds[i], displayAttrRef, color);
+    }
+    skinningAttrRef.incrementVersion();
+    displayAttrRef.incrementVersion();
+}
+
+//////////////////////////////////////
+// MultiChannelWeightAttributePaintCommand
+// The MultiChannelWeightAttributePaintCommand contains a dictionary of
+// SkinningAttributePaintManipulator_PaintData object. One for
+// each geometry. As a paint stoke moves from one geometry to another
+// the paint data is added to the relevant container in the 
+// MultiChannelWeightAttributePaintCommand
+object MultiChannelWeightAttributePaintCommand : UndoRedoCommand {
+    SkinningAttributePaintManipulator_PaintData paintData[PolygonMesh];
+};
+
+function MultiChannelWeightAttributePaintCommand(){
+}
+
+function MultiChannelWeightAttributePaintCommand.doAction!(){
+    for(mesh in this.paintData){
+        this.paintData[mesh].doAction();
+    }
+}
+
+function MultiChannelWeightAttributePaintCommand.undoAction!(){
+    for(mesh in this.paintData){
+        this.paintData[mesh].undoAction();
+    }
+}
+
+function MultiChannelWeightAttributePaintCommand.addPaintData!(SkinningAttributePaintManipulator_PaintData paintData){
+    if(this.paintData.has(paintData.mesh)){
+        this.paintData[paintData.mesh].mergeIn(paintData); 
+    }
+    else{
+        this.paintData[paintData.mesh] = paintData;
+    }
+}
+
+//////////////////////////////////////
+// Smooth Points
+
+
+// When modifying a given channel, the other channles must be conpensated, and re-normalized.
+function compensateAndNormalizeWeights(io LocalL16ScalarArray result, Integer channel, Scalar delta){
+  Scalar sum;
+  for(Integer j=0; j<result.size; j++)
+    sum += result.get(j);
+
+  if(sum < DIVIDEPRECISION)
+    return;
+  // Only normalize if the weight is > 1.0
+  // in many cases(such as skinning), this won't
+  // be desirable, so potentially should be an option.
+  if(sum < 1.0)
+    return;
+
+  // When adding data to one channel, we remove weighting from the other channels
+  // else due to normalization, the weight of a given channel can never reach 1.0.
+  sum = 0.0;
+  Scalar appliedDelta = delta/Scalar(result.size);
+  for(Integer j=0; j<result.size; j++){
+    Scalar value = result.get(j);
+    if(j!=channel){
+      value = value - appliedDelta;
+      if(value < 0.0)
+        value = 0.0;
+      else if(value > 1.0)// Can happen when subtracting weights. 
+        value = 1.0;
+      result.set(j, value);
+    }
+    sum += value;
+  }
+
+  // Now normalize the weghts. 
+  for(Integer j=0; j<result.size; j++){
+    result.set(j, result.get(j) / sum);
+  }
+}
+
+
+  // find the channel of the index we are modifying.
+  // If no channel is bound to the currently painted index, then replace the lowest weighted channel.
+function Integer findOrSetChannel(Integer currentDeformerIndex, io LocalL16ScalarArray weights, io LocalL16UInt32Array indices){
+  Integer channel = -1;
+  for(Integer j=0; j<4; j++){
+    if(indices.get(j) == currentDeformerIndex)
+        channel = j;
+  }
+  // If this vertex is not currently weighted to the current index, then we replace the minimum weighted index with this new one. 
+  if(channel == -1){
+    channel = indices.size();
+    indices.push(currentDeformerIndex);
+    weights.push(0.0);
+  }
+  return channel;
+}
+
+
+operator smoothMultiChannelWeightValues<<<index>>>(
+  PolygonMesh mesh,
+  SkinningAttribute skinningAttr,
+  Integer arraySize,
+  Integer currentDeformerIndex,
+  SurfacePaintManipulator_PointCollection collectedPoints,
+  io SkinningAttributePaintManipulator_PaintData paintData
+ ) {
+
+  //Pseudo-gaussian: center weight = 0.5, neighbor weights sum = 0.5
+  Index pointId = collectedPoints.pointIds[index];
+  Scalar paintWeight = collectedPoints.weights[index];
+  LocalL16ScalarArray oldWeights;
+  LocalL16UInt32Array oldIndices;
+  skinningAttr.getPairs(pointId, oldIndices, oldWeights);
+  LocalL16ScalarArray newWeights = oldWeights;
+  LocalL16UInt32Array newIndices = oldIndices;
+
+  Integer channel = findOrSetChannel(currentDeformerIndex, newWeights, newIndices);
+  Scalar oldValue = newWeights.get(channel);
+  Scalar newValue = oldValue;
+
+  LocalL16UInt32Array surroundingPoints;
+  mesh.getPointSurroundingPoints(pointId, false, surroundingPoints);
+  UInt32 nbNei = surroundingPoints.size();
+  
+  if( nbNei ) {
+    Scalar neiSum = 0.0;
+    for( UInt32 i = 0; i < nbNei; ++i ) {
+      UInt32 neiPt = surroundingPoints.get(i);
+
+      LocalL16ScalarArray neiWeights;
+      LocalL16UInt32Array neiIndices;
+      skinningAttr.getPairs(neiPt, neiIndices, neiWeights);
+
+      // find the channel of the index we are modifying.
+      // If no channel is bound to the currently painted index, then replace the lowest weighted channel.
+      Integer neiChannel = -1;
+      for(Integer j=0; j<4; j++){
+          if(neiIndices.get(j) == currentDeformerIndex)
+              neiChannel = j;
+      }
+      // If this vertex is not currently weighted to the current index, then we replace the minimum weighted index with this new one. 
+      if(neiChannel == -1){
+        continue;
+      }
+
+      neiSum += neiWeights.get(neiChannel);
+    }
+    neiSum /= Scalar(nbNei);
+    newValue = Math_linearInterpolate(newValue, (newValue + neiSum) * 0.5, paintWeight);
+  }
+
+  newWeights.set(channel, newValue);
+  compensateAndNormalizeWeights(newWeights, channel, newValue - oldValue);
+
+  paintData.oldWeightValues[index] = oldWeights;
+  paintData.oldIndexValues[index] = oldIndices;
+  paintData.newWeightValues[index] = newWeights;
+  paintData.newIndexValues[index] = newIndices;
+}
+
+
+///////////////////////////////////////////////
+// SkinningAttributePaintManipulator_Callback
+
+object SkinningAttributePaintManipulator_Callback : SurfacePaintManipulator_Callback {
+    Integer paintMode;
+    String skinningAttributeName;
+    String displayAttributeName;
+
+    MultiChannelWeightAttributePaintCommand command;
+
+    Integer currentDeformerIndex;
+    Color deformerColors[];
+};
+
+function SkinningAttributePaintManipulator_Callback.onStrokeBegin!(io MouseEvent mouseEvent){
+
+    // On MouseMove/Mousedown.
+    if(mouseEvent.button == MouseButton_LeftButton)
+        this.paintMode = 0; // Paint
+    else if(mouseEvent.button == MouseButton_RightButton)
+        this.paintMode = 1; // Erase
+    else if(mouseEvent.button == MouseButton_MiddleButton)
+        this.paintMode = 2; // Smooth
+
+    this.command = MultiChannelWeightAttributePaintCommand();
+    mouseEvent.accept();
+}
+
+function SkinningAttributePaintManipulator_Callback.onStrokeEnd!(io MouseEvent mouseEvent){
+    // Register a command only if painting actually occured.
+    // There should be at least one geometry added to the paint data. 
+    if(this.command.paintData.size() > 0)
+        mouseEvent.getHost().addUndoRedoCommand(this.command);
+}
+
+
+
+
+function SkinningAttributePaintManipulator_Callback.onPaint!(io MouseEvent mouseEvent, SurfacePaintManipulator_PointCollection collectedPoints){
+
+    Ref<SkinningAttribute skinningAttr = collectedPoints.mesh.getAttribute(this.skinningAttributeName);
+
+    if(skinningAttr == null){
+        report("ERROR: Geometry Does not have the attribute:" + this.skinningAttributeName );
+        return;
+    }
+
+    Ref<ColorAttribute> displayAttr = collectedPoints.mesh.getAttribute(this.displayAttributeName);
+
+    SkinningAttributePaintManipulator_PaintData paintData(collectedPoints.mesh, skinningAttr, displayAttr, this.deformerColors, collectedPoints.pointIds);
+
+    switch(this.paintMode){
+    case 0: // Paint
+        for (Integer i = 0; i < collectedPoints.pointIds.size(); i++) {
+            Scalar paintWeight = collectedPoints.weights[i];
+            Integer pointId = collectedPoints.pointIds[i];
+            LocalL16ScalarArray oldWeights;
+            LocalL16UInt32Array oldIndices;
+            skinningAttr.getPairs(pointId, oldIndices, oldWeights);
+            LocalL16ScalarArray newWeights = oldWeights;
+            LocalL16UInt32Array newIndices = oldIndices;
+
+            Integer channel = findOrSetChannel(this.currentDeformerIndex, newWeights, newIndices);
+            Scalar oldValue = newWeights.get(channel); 
+            Scalar newValue = Math_linearInterpolate(oldValue, Scalar(1.0), paintWeight);
+
+            newWeights.set(channel, newValue);
+            compensateAndNormalizeWeights(newWeights, channel, newValue - oldValue);
+
+            paintData.oldWeightValues[i] = oldWeights;
+            paintData.oldIndexValues[i] = oldIndices;
+            paintData.newWeightValues[i] = newWeights;
+            paintData.newIndexValues[i] = newIndices;
+        }
+        break;
+    case 1: // Erase
+        for (Integer i = 0; i < collectedPoints.pointIds.size(); i++) {
+            Scalar paintWeight = collectedPoints.weights[i];
+            Integer pointId = collectedPoints.pointIds[i];
+            LocalL16ScalarArray oldWeights;
+            LocalL16UInt32Array oldIndices;
+            skinningAttr.getPairs(pointId, oldIndices, oldWeights);
+            LocalL16ScalarArray newWeights = oldWeights;
+            LocalL16UInt32Array newIndices = oldIndices;
+
+            Integer channel = findOrSetChannel(this.currentDeformerIndex, newWeights, newIndices);
+            Scalar oldValue = newWeights.get(channel); 
+            Scalar newValue = Math_linearInterpolate(oldValue, Scalar(0.0), paintWeight);
+
+            newWeights.set(channel, newValue);
+            compensateAndNormalizeWeights(newWeights, channel, newValue - oldValue);
+
+            paintData.oldWeightValues[i] = oldWeights;
+            paintData.oldIndexValues[i] = oldIndices;
+            paintData.newWeightValues[i] = newWeights;
+            paintData.newIndexValues[i] = newIndices;
+        }
+        break;
+    case 2: // Smooth
+        UInt32 nbPoints = collectedPoints.pointIds.size();
+        smoothMultiChannelWeightValues<<<nbPoints>>>(
+            collectedPoints.mesh,
+            weightsAttr.values,
+            indicesAttr.values,
+            this.currentDeformerIndex,
+            collectedPoints,
+            paintData
+        );
+        break;
+    }
+    // do the command immedietly...
+    paintData.doAction();
+    // Merge this paintData with the command so that we only generate one undo command 
+    // for the entire paint stroke, even if we cross multipel geometries. 
+    this.command.addPaintData(paintData);
+}
+
+///////////////////////////////////////////////
+// SkinningAttributePaintManipulator
+
+object SkinningAttributePaintManipulator : SurfacePaintManipulator {
+
+    String skinningAttributeName;
+    String displayAttributeName;
+
+    Integer currentDeformerIndex;
+    Color deformerColors[];
+};
+
+
+function SkinningAttributePaintManipulator(){
+    this.parent.init();
+    this.setCallbackObj(SkinningAttributePaintManipulator_Callback());
+    this.skinningAttributeName = 'skinningAttr';
+    this.displayAttributeName = 'skinningAttrColors';
+}
+
+function SkinningAttributePaintManipulator.setAttributeName!(String skinningAttributeName){
+    this.skinningAttributeName = skinningAttributeName;
+}
+
+
+function SkinningAttributePaintManipulator.setActiveDeformer!(Size currentDeformerIndex){
+    this.currentDeformerIndex = currentDeformerIndex;
+    SkinningAttributePaintManipulator_Callback(this.callbackObj).currentDeformerIndex = currentDeformerIndex;
+
+    if(this.currentDeformerIndex >= this.deformerColors.size){
+        UInt32 currCount = this.deformerColors.size();
+        UInt32 seed = 874615615;
+        this.deformerColors.resize(currentDeformerIndex+1);
+        for(Integer i=currCount; i<=currentDeformerIndex; i++){
+          this.deformerColors[i] = randomColor(seed, i);
+        }
+    }
+}
+
+function SkinningAttributePaintManipulator.setChannelColors!(Color deformerColors[]){
+    this.deformerColors = deformerColors;
+}
+
+function SkinningAttributePaintManipulator.onEnable!(){
+
+    this.parent.onEnable();
+
+    // Prepare the callback for painting.
+    SkinningAttributePaintManipulator_Callback callbackObj = this.callbackObj;
+    callbackObj.skinningAttributeName = this.skinningAttributeName;
+    callbackObj.displayAttributeName = this.displayAttributeName;
+
+    callbackObj.currentDeformerIndex = this.currentDeformerIndex;
+    callbackObj.deformerColors = this.deformerColors;
+}
+
+function SkinningAttributePaintManipulator.addTargetGeometry!(InlineInstance instance){
+
+    this.parent.addTargetGeometry(instance);
+
+    for(Integer i=0; i<this.targetGeometries.size; i++){
+        InlineShape shape = this.targetGeometries[i].getShape();
+        PolygonMesh mesh = shape.getGeometry();
+        if(mesh == null){
+            report("WARNING: Geometry is not a PolygonMesh:" + this.targetGeometries[i].getName() );
+            continue;
+        }
+
+        Ref<ScalarConstantArrayAttribute> weightsAttr = mesh.getOrCreateAttribute(this.skinningAttributeName, SkinningAttribute);
+        Ref<ColorAttribute> displayAttr = mesh.getOrCreateAttribute(this.displayAttributeName, ColorAttribute);
+    }
+}
+
+function SkinningAttributePaintManipulator.onEvent!(io Event event){
+    this.parent.onEvent(event);
+
+    if(event.type() == KeyEvent){
+      KeyEvent keyEvent = event;
+      if(keyEvent.key >= Key_Key_0 && keyEvent.key <= Key_Key_9 ){
+        this.currentDeformerIndex = keyEvent.key - Key_Key_0;
+        event.getHost().requestRedraw();
+        event.accept();
+      }
+    }
+}
