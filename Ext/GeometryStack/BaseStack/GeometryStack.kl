@@ -44,45 +44,17 @@ function GeometryStack.addGeometryOperator!(GeometryOperator op) {
 
 // Prepare the cache points.
 function GeometryStack.initCachePoints!() {
-	String cachedAttributes[][];
-	String prevModifiedAttributes[];
-	cachedAttributes.resize(this.geomOperators.size);
-	for(Integer i=this.geomOperators.size-1; i>=0; i--){
-		String modifiedAttributes[] = this.geomOperators[i].getModifiedAttributes();
-		report("modifiedAttributes:" + modifiedAttributes);
-		for(Integer j=0; j<modifiedAttributes.size; j++){
-			Boolean found = false;
-			for(Integer k=0; k<prevModifiedAttributes.size; k++){
-				if(modifiedAttributes[j] == prevModifiedAttributes[k])
-					found = true;
-			}
-			if(!found)
-				cachedAttributes[i].push(modifiedAttributes[j]);
-		}
-		prevModifiedAttributes = modifiedAttributes;
-	}
 	this.cachePoints.resize(this.geomOperators.size);
-	prevModifiedAttributes.resize(0);
-	Generator generator = null;
 	for(Integer i=0; i<this.geomOperators.size; i++){
-		if(generator)
+		Generator generator = this.geomOperators[i];
+		if(generator){
 			if(generator.cacheResults())
 				this.cachePoints[i] = GeometryCache();
+		}
 		else{
-			if(cachedAttributes[i].size > 0)
-				this.cachePoints[i] = GeometryAttributeCache(cachedAttributes[i]);
-
-			// String utilizedAttributes[] = this.geomOperators[i].getUtilizedAttributes();
-			// for(Integer j=0; j<utilizedAttributes.size; j++){
-			// 	if(this.implicitDependencies.has(utilizedAttributes[j])){
-			// 		String attributeDependencies[] = this.implicitDependencies[utilizedAttributes[j]];
-			// 		for(Integer k=0; k<prevModifiedAttributes.size; k++){
-			// 			if(attributeDependencies[j] == prevModifiedAttributes[k])
-			// 				found = true;
-			// 		}
-			// 	}
-			// }
-			// prevModifiedAttributes = this.geomOperators[i].getModifiedAttributes();
+			String modifiedAttributes[] = this.geomOperators[i].getModifiedAttributes();
+			if(modifiedAttributes.size > 0)
+				this.cachePoints[i] = GeometryAttributeCache(modifiedAttributes);
 		}
 		generator = this.geomOperators[i];
 	}
