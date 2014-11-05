@@ -10,7 +10,7 @@ object ComputeNormalsDeformer : BaseDeformer {
 	Scalar hardAngleRadians;
 };
 
-function String[] ComputeNormalsDeformer.getUtilizedAttributes(){
+function String[] ComputeNormalsDeformer.getRequiredAttributes(){
 	String result[];
 	result.push('positions');
 	result.push('normals');

@@ -1,0 +1,15 @@
+
+require RiggingToolbox;
+
+operator entry(){
+   	
+   	GeometryStack stack();
+   	stack.addGeometryOperator(PolygonMeshSphereGenerator(2.0, 2, true, false));
+   	stack.addGeometryOperator(PushDeformer());
+   	stack.initCachePoints();
+
+    EvalContext context();
+    // Causes and erorr because the PushDeformer requires normals, but the sphere doesn't have them. 
+    stack.evaluate(context);
+}
+

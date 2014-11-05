@@ -7,13 +7,24 @@ require Geometry;
 
 
 object GeometryCache : CachePoint {
+  // Temp: Used in debugging and unit testing.
+  Boolean disabled;
   Boolean valid;
-  BaseGeometry cachedGeometries[];
+  Geometry cachedGeometries[];
   UInt32 topologyVersions[];
 };
 
 function GeometryCache() {
 }
+
+function GeometryCache.disable!() {
+  this.disabled = true;
+}
+
+function GeometryCache.enable!() {
+  this.disabled = false;
+}
+
 
 function GeometryCache.invalidate!() {
   this.valid = false;
@@ -24,68 +35,26 @@ function Boolean GeometryCache.isValid() {
 }
 
 function GeometryCache.init!(Geometry geometries[]) {
+  if(this.disabled)
+    return;
   report("GeometryCache.init");
   this.cachedGeometries.resize(geometries.size);
   this.topologyVersions.resize(geometries.size);
   for(Integer i=0; i<geometries.size; i++){
-    // Note: we need clone and 'getVersion' to be part of the Geometry interface. 
-    PolygonMesh mesh = geometries[i];
-    BaseGeometry baseGeom = null;
-    if(mesh)
-      baseGeom = mesh;
-    else{
-      Lines lines = geometries[i];
-      if(lines)
-        baseGeom = lines;
-      else{
-        Points points = geometries[i];
-        if(points)
-          baseGeom = lines;
-      }
-    }
-    this.cachedGeometries[i] = baseGeom.clone();
-    this.topologyVersions[i] = baseGeom.version;
+    this.cachedGeometries[i] = cloneGeom(geometries[i]);
+    this.topologyVersions[i] = getGeomVersion(geometries[i]);
   }
   this.valid = true;
 }
 
 /// Restores the entire geometry to the state found in the cache.
 function GeometryCache.restore(io Geometry geometries[]){
+  if(this.disabled)
+    return;
   report("GeometryCache.restore:" + this.cachedGeometries.size);
   geometries.resize(this.cachedGeometries.size);
   for(Integer i=0; i<geometries.size; i++){
-
-    PolygonMesh mesh = geometries[i];
-    if(mesh){
-      if(mesh.version != this.topologyVersions[i]){
-        // Reset the geometry and its topology to the state when the cache point was created.
-        PolygonMesh src = this.cachedGeometries[i];
-        if(src)
-          mesh.copy(src);
-      }
-    }
-    else{
-      Lines lines = geometries[i];
-      if(lines){
-        if(lines.version != this.topologyVersions[i]){
-          // Reset the geometry and its topology to the state when the cache point was created.
-          Lines src = this.cachedGeometries[i];
-          if(src)
-            lines.copy(src);
-        }
-      }
-      else{
-        Points points = geometries[i];
-        if(points){
-          if(points.version != this.topologyVersions[i]){
-            // Reset the geometry and its topology to the state when the cache point was created.
-            Points src = this.cachedGeometries[i];
-            if(src)
-              points.copy(src);
-          }
-        }
-      }
-    }
+    copyFrom(geometries[i], this.cachedGeometries[i]);
   }
 }
 

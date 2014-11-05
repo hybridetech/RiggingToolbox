@@ -60,6 +60,15 @@ function GeometryStack.initCachePoints!() {
 	}
 }
 
+function GeometryStack.disableCachePoint!(UInt32 index) {
+	if(this.cachePoints[index] != null)
+		this.cachePoints[index].disable();
+}
+
+function GeometryStack.enableCachePoint!(UInt32 index) {
+	if(this.cachePoints[index] != null)
+		this.cachePoints[index].enable();
+}
 
 function GeometryStack.notify!(Notifier notifier, String type, String data) {
 	switch(type){
@@ -84,6 +93,23 @@ function Geometry[] GeometryStack.evaluate!(EvalContext context) {
 	this.dirtyPoint = 0;// force evlauation all the time.
 	if(this.dirtyPoint < this.geomOperators.size){
 		for(Integer i=this.dirtyPoint; i<this.geomOperators.size; i++){
+
+			// Now check the geometries if they have the attributes required by the next operation.
+			Boolean debug = true;
+			if(debug){
+				String requiredAttributes[] = this.geomOperators[i].getRequiredAttributes();
+				for(Integer k=0; k<this.geometries.size; k++){
+					String missingAttributes[];
+					for(Integer j=0; j<requiredAttributes.size; j++){
+						Ref<GeometryAttributes> attributes = this.geometries[k].getAttributes();
+						if(!attributes.has(requiredAttributes[j]))
+							missingAttributes.push(requiredAttributes[j]);
+					}
+					if(missingAttributes.size > 0)
+						setError('Geometry missing required attributes:' + missingAttributes);
+				}
+			}
+
 			CachePoint cachePoint = this.cachePoints[i];
 			if(cachePoint != null && cachePoint.isValid())
 				cachePoint.restore(this.geometries);

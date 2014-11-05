@@ -13,7 +13,7 @@ object PolygonMeshDeformer : BaseDeformer {
 function PolygonMeshDeformer.bind!(Geometry geometries[]){
 	this.polyMeshIndices.resize(0);
 	for(Integer i=0; i<geometries.size; i++){
-		if(geometries[index] != null && geometries[index].type() == PolygonMesh)
+		if(geometries[i] != null && geometries[i].type() == PolygonMesh)
 			this.polyMeshIndices.push(i);
 	}
 }

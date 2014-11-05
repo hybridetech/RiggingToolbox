@@ -7,6 +7,11 @@ require Geometry;
 
 interface CachePoint  {
 
+
+	// Temp: Used in debugging and unit testing.
+	disable!();
+	enable!();
+
 	invalidate!();
 	Boolean isValid();
 	init!(Geometry geometries[]);

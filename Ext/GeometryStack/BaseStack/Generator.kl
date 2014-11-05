@@ -19,7 +19,8 @@ function BaseGenerator(){
 
 }
 
-function String[] BaseGenerator.getUtilizedAttributes(){
+function String[] BaseGenerator.getRequiredAttributes(){
+	// Generators should never require attributes to exist. 
 	String result[];
 	return result;
 }

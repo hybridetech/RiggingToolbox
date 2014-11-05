@@ -1,0 +1,193 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+
+function Geometry cloneGeom(Geometry geometry) {
+  // Note: we need clone to be part of the Geometry interface. 
+  PolygonMesh mesh = geometry;
+  if(mesh)
+    return mesh.clone();
+  else{
+    Lines lines = geometry;
+    if(lines)
+      return lines.clone();
+    else{
+      Points points = geometry;
+      if(points)
+        return points.clone();
+    }
+  }
+  setError("Invalid Geometry type:" + geometry.type());
+  return null;
+}
+
+
+function copyFrom(io Geometry geometry, Geometry srcGeometry) {
+  // Note: we need copyFromGeometry to be part of the Geometry interface. 
+  PolygonMesh mesh = geometry;
+  if(mesh){
+    PolygonMesh src = srcGeometry;
+    if(src)
+      mesh.copy(src);
+  }
+  else{
+    Lines lines = geometry;
+    if(lines){
+      Lines src = srcGeometry;
+      if(src)
+        lines.copy(src);
+    }
+    else{
+      Points points = geometry;
+      if(points){
+        Points src = srcGeometry;
+        if(src)
+          points.copy(src);
+      }
+      else{
+        setError("Invalid Geometry type:" + geometry.type());
+      }
+    }
+  }
+}
+
+function UInt32 getGeomVersion(Geometry geometry) {
+  // Note: we need 'getVersion' to be part of the Geometry interface. 
+  PolygonMesh mesh = geometry;
+  if(mesh)
+    return mesh.version;
+  else{
+    Lines lines = geometry;
+    if(lines)
+      return lines.version;
+    else{
+      Points points = geometry;
+      if(points)
+        return points.version;
+    }
+  }
+  setError("Invalid Geometry type:" + geometry.type());
+  return -1;
+}
+
+
+
+function String getGeomDebugName(Geometry geometry) {
+  // Note: we need 'getVersion' to be part of the Geometry interface. 
+  PolygonMesh mesh = geometry;
+  if(mesh)
+    return mesh.debugName;
+  else{
+    Lines lines = geometry;
+    if(lines)
+      return lines.debugName;
+    else{
+      Points points = geometry;
+      if(points)
+        return points.debugName;
+    }
+  }
+  setError("Invalid Geometry type:" + geometry.type());
+  return "<none>";
+}
+
+
+
+function GeometryAttribute cloneAttribute(GeometryAttribute attr) {
+  // Note: we need clone to be part of the Geometry interface. 
+  Ref<Object> src = attr;
+  switch(attr.type()){
+    case ColorAttribute:{
+      ColorAttribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+    case IntegerAttribute:{
+      IntegerAttribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+    case Mat33Attribute:{
+      Mat33Attribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+    case Mat44Attribute:{
+      Mat44Attribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+    case QuatAttribute:{
+      QuatAttribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+    case RGBAAttribute:{
+      RGBAAttribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+    case RGBAttribute:{
+      RGBAttribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+    case RGBAttribute:{
+      RGBAttribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+    case ScalarAttribute:{
+      ScalarAttribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+    case ScalarConstantArrayAttribute:{
+      ScalarConstantArrayAttribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+    case SkinningAttribute:{
+      SkinningAttribute colorAttr = attr;
+      SkinningAttribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+    case UInt16ConstantArrayAttribute:{
+      UInt16ConstantArrayAttribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+    case UInt32Attribute:{
+      UInt32Attribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+    case Vec2Attribute:{
+      Vec2Attribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+    case Vec3_dAttribute:{
+      Vec3_dAttribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+    case Vec3Attribute:{
+      Vec3Attribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+    case Vec4Attribute:{
+      Vec4Attribute clone();
+      clone.copyFrom(src);
+      return clone;
+    }
+  }
+  setError("Invalid Attribute type:" + attr.type());
+  return null;
+}

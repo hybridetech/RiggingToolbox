@@ -12,7 +12,7 @@ object SkinningDeformer : BaseDeformer {
 };
 
 
-function String[] SkinningDeformer.getUtilizedAttributes(){
+function String[] SkinningDeformer.getRequiredAttributes(){
   String result[];
   result.push('positions');
   result.push('normals');

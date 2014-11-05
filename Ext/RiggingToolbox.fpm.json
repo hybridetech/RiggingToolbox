@@ -5,6 +5,7 @@
     "Math/softClamp.kl",
     "Math/pivotDistanceLimit.kl",
     "Kinematics/solveNCFIK.kl",
+    "GeometryStack/BaseStack/GeometryHelperFunctions.kl",
     "GeometryStack/BaseStack/Listener.kl",
     "GeometryStack/BaseStack/Notifier.kl",
     "GeometryStack/BaseStack/GeometryOperator.kl",
@@ -14,6 +15,8 @@
     "GeometryStack/BaseStack/GeometryCache.kl",
     "GeometryStack/BaseStack/GeometryAttributeCache.kl",
     "GeometryStack/BaseStack/GeometryStack.kl",
-    "GeometryStack/PolygonMeshSphereGenerator.kl"
+    "GeometryStack/BaseStack/PolygonMeshDeformer.kl",
+    "GeometryStack/PolygonMeshSphereGenerator.kl",
+    "GeometryStack/PushDeformer.kl"
   ]
 }

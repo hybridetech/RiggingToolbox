@@ -10,6 +10,8 @@ object PolygonMeshSphereGenerator : BaseGenerator {
   UInt32 detail;
   Boolean uvs;
   Boolean normals;
+
+  Boolean enableCaching;// Used to debug the caching system.
 };
 
 function PolygonMeshSphereGenerator(){
@@ -17,6 +19,13 @@ function PolygonMeshSphereGenerator(){
   this.detail = 4;
   this.uvs = true;
   this.normals = true;
+}
+
+function PolygonMeshSphereGenerator(Scalar radius, UInt32 detail, Boolean setNormals, Boolean setUVs){
+  this.radius = radius;
+  this.detail = detail;
+  this.uvs = setNormals;
+  this.normals = setUVs;
 }
 
 function String[] PolygonMeshSphereGenerator.getModifiedAttributes(){
@@ -31,13 +40,14 @@ function String[] PolygonMeshSphereGenerator.getModifiedAttributes(){
 
 
 function Boolean PolygonMeshSphereGenerator.cacheResults(){
-  return true;
+  return this.enableCaching;
 }
 
 function PolygonMeshSphereGenerator.evaluate(EvalContext context, io Geometry geometries[]){
   report("PolygonMeshSphereGenerator.evaluate:" + context);
   geometries.resize(1);
   PolygonMesh mesh();
+  mesh.debugName = "Sphere";
   mesh.addSphere(Xfo(), this.radius, this.detail, this.normals, this.uvs);
   geometries[0] = mesh;
 }

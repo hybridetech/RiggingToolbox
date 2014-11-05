@@ -10,7 +10,7 @@ object ComputeTangentsDeformer : PolygonMeshDeformer {
 	Scalar hardAngleRadians;
 };
 
-function String[] ComputeTangentsDeformer.getUtilizedAttributes(){
+function String[] ComputeTangentsDeformer.getRequiredAttributes(){
 	String result[];
 	result.push('positions');
 	result.push('normals');

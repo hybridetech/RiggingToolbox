@@ -9,7 +9,7 @@ interface Deformer {
 	// Returns the list of attributes used in the computation.
 	// This can be used as a hint to tell the caching system.
 	// to update its values. 
-	String[] getUtilizedAttributes();
+	String[] getRequiredAttributes();
 
 	// returns the list of attributes modifed by the deformer. 
 	String[] getModifiedAttributes();
@@ -27,7 +27,7 @@ object BaseDeformer : Notifier, Deformer, GeometryOperator {
 
 };
 
-function String[] BaseDeformer.getUtilizedAttributes(){
+function String[] BaseDeformer.getRequiredAttributes(){
 	String result[];
 	return result;
 }

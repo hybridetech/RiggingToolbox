@@ -12,10 +12,11 @@ object PolygonMeshPlaneGenerator : BaseGenerator {
   UInt32 widthSections;
   Boolean normals;
   Boolean uvs;
+
+  Boolean enableCaching;// Used to debug the caching system.
 };
 
 function PolygonMeshPlaneGenerator(){
-
 }
 
 function String[] PolygonMeshPlaneGenerator.getModifiedAttributes(){
@@ -29,7 +30,7 @@ function String[] PolygonMeshPlaneGenerator.getModifiedAttributes(){
 }
 
 function Boolean PolygonMeshPlaneGenerator.cacheResults(){
-  return false;
+  return this.enableCaching;
 }
 
 function PolygonMeshPlaneGenerator.evaluate(EvalContext context, io Geometry geometries[]){

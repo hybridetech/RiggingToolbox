@@ -7,7 +7,10 @@ require Geometry;
 
 
 object GeometryAttributeCache : CachePoint {
+  // Temp: Used in debugging and unit testing.
+  Boolean disabled;
   Boolean valid;
+
   String cachedAttributesNames[];
   GeometryAttribute cachedAttributes[][];
   UInt32 attributeVersions[][];
@@ -15,6 +18,15 @@ object GeometryAttributeCache : CachePoint {
 
 function GeometryAttributeCache(String cachedAttributesNames[]) {
   this.setCachedAttributeNames(cachedAttributesNames);
+}
+
+
+function GeometryAttributeCache.disable!() {
+  this.disabled = true;
+}
+
+function GeometryAttributeCache.enable!() {
+  this.disabled = false;
 }
 
 function GeometryAttributeCache.invalidate!() {
@@ -30,16 +42,25 @@ function GeometryAttributeCache.setCachedAttributeNames!(String cachedAttributes
 }
 
 function GeometryAttributeCache.init!(Geometry geometries[]) {
-  this.cachedAttributesNames.resize(geometries.size);
+  if(this.disabled)
+    return;
+  report("GeometryAttributeCache.init");
   this.cachedAttributes.resize(geometries.size);
+  this.attributeVersions.resize(geometries.size);
   for(Integer i=0; i<geometries.size; i++){
     Ref<GeometryAttributes> attributes = geometries[i].getAttributes();
     this.cachedAttributes[i].resize(this.cachedAttributesNames.size);
     this.attributeVersions[i].resize(this.cachedAttributesNames.size);
     for(Integer j=0; j<this.cachedAttributes.size; j++){
-      Ref<GeometryAttribute> attr = attributes.getAttribute(this.cachedAttributes[i]);
-      this.cachedAttributes[i][j] = attr.clone();
-      this.attributeVersions[i][j] = attr.getVersion();
+      Ref<GeometryAttribute> attr = attributes.getAttribute(this.cachedAttributesNames[i]);
+      if(attr){
+        this.cachedAttributes[i][j] = cloneAttribute(attr);
+        this.attributeVersions[i][j] = attr.getVersion();
+      }
+      else{
+        // report("Warning: geometry does not have required attribute ");
+        report("Warning in GeometryAttributeCache.init: Geometry " +getGeomDebugName(geometries[i])+ " at index :"+i+" does not have the following attribute:" + this.cachedAttributesNames[i]);// Maybe the deformer will generate it. 
+      }
     }
   }
   this.valid = true;
@@ -47,13 +68,22 @@ function GeometryAttributeCache.init!(Geometry geometries[]) {
 
 /// Restores the geometry attributes to the state found in the cache.
 function GeometryAttributeCache.restore(io Geometry geometries[]){
+  if(this.disabled)
+    return;
+  report("GeometryAttributeCache.restore");
   for(Integer i=0; i<geometries.size; i++){
     Ref<GeometryAttributes> attributes = geometries[i].getAttributes();
     for(Integer j=0; j<this.cachedAttributesNames.size; j++){
       Ref<GeometryAttribute> attr = attributes.getAttribute(this.cachedAttributesNames[j]);
-      if(this.attributeVersions[i][j] != attr.getVersion()){
-        Ref<Object> cachedAttr = this.cachedAttributes[i][j];
-        attr.copyFrom( cachedAttr );
+      if(this.cachedAttributes[i][j] != null){
+        if(this.attributeVersions[i][j] != attr.getVersion()){
+          Ref<Object> cachedAttr = this.cachedAttributes[i][j];
+          attr.copyFrom( cachedAttr );
+        }
+      }
+      else{
+        // The attribute did not exist before. 
+        // remove the attribute?
       }
     }
   }

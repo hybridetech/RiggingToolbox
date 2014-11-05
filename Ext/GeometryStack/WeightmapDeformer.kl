@@ -11,7 +11,7 @@ object WeightmapDeformer : PolygonMeshDeformer {
 	String weightmapName;
 };
 
-function String[] WeightmapDeformer.getUtilizedAttributes(){
+function String[] WeightmapDeformer.getRequiredAttributes(){
 	String result[];
 	result.push('positions');
 	result.push('normals');

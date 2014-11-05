@@ -10,7 +10,15 @@ object PushDeformer : PolygonMeshDeformer {
 	Scalar push;
 };
 
-function String[] PushDeformer.getUtilizedAttributes(){
+function PushDeformer(){
+	this.push = 1.0;
+}
+
+function PushDeformer(Scalar push){
+	this.push = push;
+}
+
+function String[] PushDeformer.getRequiredAttributes(){
 	String result[];
 	result.push('positions');
 	result.push('normals');
@@ -43,17 +51,19 @@ operator PushDeformer_deformGeometries<<<index>>>(
 	Ref<GeometryAttributes> attributes = geometries[index].getAttributes();
 	Vec3Attribute positionsAttribute = attributes.positionsAttribute;
 	Vec3Attribute normalsAttribute = attributes.normalsAttribute;
-
+	if(!positionsAttribute || !normalsAttribute){
+		setError("Error in PushDeformer_deformGeometries. Missing attributes.");
+	}
 	PushDeformer_pushPositionsAlongNormals<<<attributes.size()>>>(
 		positionsAttribute.values,
 		normalsAttribute.values,
 		push
 	);
 	positionsAttribute.incrementVersion();
-	return true;
 }
 
 function PushDeformer.evaluate(EvalContext context, io Geometry geometries[]){
+	report("PushDeformer.evaluate");
   PushDeformer_deformGeometries<<<geometries.size()>>>(geometries, this.push);
 }
 
