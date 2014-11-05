@@ -1,0 +1,43 @@
+
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+interface Generator {
+	Boolean cacheResults();
+	evaluate(EvalContext context, io Geometry geometries[]);
+};
+
+object BaseGenerator : Notifier, Generator, GeometryOperator {
+
+};
+
+function BaseGenerator(){
+
+}
+
+function String[] BaseGenerator.getUtilizedAttributes(){
+	String result[];
+	return result;
+}
+
+function String[] BaseGenerator.getModifiedAttributes(){
+	String result[];
+	result.push('positions');
+	return result;
+}
+
+
+/// Return true if the generation of the geometries is expensive and the results should be cached.
+function Boolean BaseGenerator.cacheResults(){
+	return false;
+}
+
+function BaseGenerator.evaluate(EvalContext context, io Geometry geometries[]){
+
+}
+
+

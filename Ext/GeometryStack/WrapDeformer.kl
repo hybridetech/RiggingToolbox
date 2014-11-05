@@ -1,0 +1,80 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+object WrapDeformer : BaseDeformer {
+  GeometryLocation locations[][];
+  Vec3 deltas[];
+  GeometryStack sourceGeometries;
+};
+
+
+function WrapDeformer(){
+  this.threshold = 0.001;
+}
+
+function WrapDeformer.bind!(Geometry geometries[]){
+
+}
+
+
+operator computeBinding<<<index>>>(
+  Vec3 refpositions[],
+  Vec3 positions[],
+  Scalar threshold,
+  io Vec3 deltas[]
+){
+  Vec3 delta = refpositions - positions[index];
+  if(deltas.lengthSquared() > threshold)
+    positions[index] = position;
+}
+
+
+function WrapDeformer.addTarget(EvalContext context, Geometry targetGeometry){
+
+  computeBinding<<<geometries.size()>>>(geometries, skinningPosAndNormMatrices);
+}
+
+
+operator applyDeltas<<<index>>>(
+  io Vec3 positions[],
+  UInt32ArrayAllocator deltasAllocator,
+  UInt32 offset,
+  Vec3 deltas[]
+){
+  UInt32 pointIndex = deltasAllocator.data[offset+index];
+  positions[pointIndex] += deltas[index];
+}
+
+
+operator deformGeometries<<<index>>>(
+  io Geometry geometries[],
+  UInt32ArrayAllocator deltasAllocator,
+  Vec3 deltas[]
+){
+  Ref<GeometryAttributes> attributes = geometries[index].getAttributes();
+  Vec3Attribute positionsAttribute = attributes.positionsAttribute;
+  applyDeltas<<<attributes.size()>>>(
+    positionsAttribute.values,
+    deltasAllocator,
+    deltas
+  );
+  positionsAttribute.incrementVersion();
+  return true;
+}
+
+function WrapDeformer.evaluate(EvalContext context, io Geometry geometries[]){
+  deformGeometries<<<geometries.size()>>>(geometries, skinningPosAndNormMatrices);
+}
+
+
+function WrapDeformer.save(){
+  
+}
+
+function WrapDeformer.load(){
+  
+}

@@ -1,0 +1,70 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+
+object GeometryAttributeCache : CachePoint {
+  Boolean valid;
+  String cachedAttributesNames[];
+  GeometryAttribute cachedAttributes[][];
+  UInt32 attributeVersions[][];
+};
+
+function GeometryAttributeCache(String cachedAttributesNames[]) {
+  this.setCachedAttributeNames(cachedAttributesNames);
+}
+
+function GeometryAttributeCache.invalidate!() {
+  this.valid = false;
+}
+
+function Boolean GeometryAttributeCache.isValid() {
+  return this.valid;
+}
+
+function GeometryAttributeCache.setCachedAttributeNames!(String cachedAttributesNames[]) {
+  this.cachedAttributesNames = cachedAttributesNames.clone();
+}
+
+function GeometryAttributeCache.init!(Geometry geometries[]) {
+  this.cachedAttributesNames.resize(geometries.size);
+  this.cachedAttributes.resize(geometries.size);
+  for(Integer i=0; i<geometries.size; i++){
+    Ref<GeometryAttributes> attributes = geometries[i].getAttributes();
+    this.cachedAttributes[i].resize(this.cachedAttributesNames.size);
+    this.attributeVersions[i].resize(this.cachedAttributesNames.size);
+    for(Integer j=0; j<this.cachedAttributes.size; j++){
+      Ref<GeometryAttribute> attr = attributes.getAttribute(this.cachedAttributes[i]);
+      this.cachedAttributes[i][j] = attr.clone();
+      this.attributeVersions[i][j] = attr.getVersion();
+    }
+  }
+  this.valid = true;
+}
+
+/// Restores the geometry attributes to the state found in the cache.
+function GeometryAttributeCache.restore(io Geometry geometries[]){
+  for(Integer i=0; i<geometries.size; i++){
+    Ref<GeometryAttributes> attributes = geometries[i].getAttributes();
+    for(Integer j=0; j<this.cachedAttributesNames.size; j++){
+      Ref<GeometryAttribute> attr = attributes.getAttribute(this.cachedAttributesNames[j]);
+      if(this.attributeVersions[i][j] != attr.getVersion()){
+        Ref<Object> cachedAttr = this.cachedAttributes[i][j];
+        attr.copyFrom( cachedAttr );
+      }
+    }
+  }
+}
+
+
+function GeometryAttributeCache.update!(io Geometry geometries[]) {
+  if(this.valid)
+    this.init(geometries);
+  else
+    this.restore(geometries);
+}
+
+

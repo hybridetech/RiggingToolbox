@@ -1,0 +1,59 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+interface Deformer {
+	// Returns the list of attributes used in the computation.
+	// This can be used as a hint to tell the caching system.
+	// to update its values. 
+	String[] getUtilizedAttributes();
+
+	// returns the list of attributes modifed by the deformer. 
+	String[] getModifiedAttributes();
+
+
+	/// Enables the deformer to bind itsself to the geometry, generating any bind data used during evaluation.
+	bind!(Geometry geometries[]);
+	evaluate(EvalContext context, io Geometry geometries[]);
+
+	String saveJSON();
+	loadJSON!(String json);
+};
+
+object BaseDeformer : Notifier, Deformer, GeometryOperator {
+
+};
+
+function String[] BaseDeformer.getUtilizedAttributes(){
+	String result[];
+	return result;
+}
+
+function String[] BaseDeformer.getModifiedAttributes(){
+	String result[];
+	return result;
+}
+
+function BaseDeformer.bind!(Geometry geometries[]){
+
+}
+
+
+function BaseDeformer.evaluate(EvalContext context, io Geometry geometries[]){
+
+}
+
+
+function String BaseDeformer.saveJSON(){
+	String json;
+
+
+	return json;
+}
+
+function BaseDeformer.loadJSON!(String json){
+  
+}

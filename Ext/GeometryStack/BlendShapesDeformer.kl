@@ -1,0 +1,135 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+
+struct BlendShapesDeformer_OffsetAndCount {
+  UInt32 offset;
+  UInt32 count;
+};
+
+/// The Blend Shapes deformer stores a sparce data set of offsets. 
+object BlendShapesDeformer : BaseDeformer {
+
+  UInt32ArrayAllocator allocator;
+  BlendShapesDeformer_OffsetAndCount offsetAndCounts[];
+
+  Vec3 deltas[];
+
+  Scalar threshold;
+};
+
+
+function BlendShapesDeformer(){
+  this.threshold = 0.001;
+}
+
+
+function BlendShapesDeformer.bind!(Geometry geometries[]){
+
+}
+
+/// \internal Will defrag memory buffers if more than 1/3 is free
+inline Boolean BlendShapesDeformer._recompactIfRequired!() {
+  //Allow 25% free data
+  if( this.allocator.data.size() < this.allocator.freeDataCount * 3 )
+    return this._recompact();
+  else
+    return false;
+}
+
+/// \internal Returns storage offset and pairs count for a given item index
+inline BlendShapesDeformer._getOffsetAndCount( UInt32 geomIndex, io UInt32 offset, io UInt32 count ) {
+  offset = this.offsetAndCounts[geomIndex].offset;
+  count = this.offsetAndCounts[geomIndex].count;
+}
+
+/// \internal Resizes the number of id-weight pairs and returns the offset of the resized item. If copyData, the previous data will be preserved.
+function UInt32 BlendShapesDeformer._resizeDeltasArray!( UInt32 geomIndex, UInt32 newCount ) {
+  UInt32 offset;
+  UInt32 count;
+  this._getOffsetAndCount( geomIndex, offset, count );
+
+  if( newCount != count ) {
+    UInt32 newOffset = count ? this.allocator.reallocate( offset, count, newCount, 0 ) : this.allocator.allocate( newCount, 0 );
+    UInt32 prevDataSize = this.offsetAndCounts.size();
+    UInt32 newDataSize = this.allocator.data.size();
+    this.deltas.resize(newDataSize);
+
+    if( newOffset != offset ) {
+      this.offsetAndCounts[geomIndex].offset = newOffset;
+
+      if( this._recompactIfRequired() )
+        newOffset = this.offsetAndCounts[geomIndex].offset;
+      // Copy the attribute values to thier new locations.
+      for(UInt32 i=0; i<count; i++){
+        this.deltas[newOffset+i-1] = this.deltas[offset+i-1];
+      }
+      offset = newOffset;
+    }
+    this.offsetAndCounts[geomIndex].count = newCount;
+  }
+  return offset;
+}
+
+
+operator computeDeltas<<<index>>>(
+  Vec3 refpositions[],
+  Vec3 positions[],
+  Scalar threshold,
+  io Vec3 deltas[]
+){
+  Vec3 delta = refpositions - positions[index];
+  if(deltas.lengthSquared() > threshold)
+    positions[index] = position;
+}
+
+
+function BlendShapesDeformer.addTarget(EvalContext context, Geometry targetGeometry){
+
+  computeDeltas<<<geometries.size()>>>(geometries, skinningPosAndNormMatrices);
+}
+
+
+operator applyDeltas<<<index>>>(
+  io Vec3 positions[],
+  UInt32ArrayAllocator indices,
+  UInt32 offset,
+  Vec3 deltas[]
+){
+  UInt32 pointIndex = indices.data[offset+index];
+  positions[pointIndex] += deltas[index];
+}
+
+
+operator deformGeometries<<<index>>>(
+  io Geometry geometries[],
+  UInt32ArrayAllocator indices,
+  Vec3 deltas[]
+){
+  Ref<GeometryAttributes> attributes = geometries[index].getAttributes();
+  Vec3Attribute positionsAttribute = attributes.positionsAttribute;
+  applyDeltas<<<attributes.size()>>>(
+    positionsAttribute.values,
+    indices,
+    deltas
+  );
+  positionsAttribute.incrementVersion();
+  return true;
+}
+
+function BlendShapesDeformer.evaluate(EvalContext context, io Geometry geometries[]){
+  deformGeometries<<<geometries.size()>>>(geometries, skinningPosAndNormMatrices);
+}
+
+
+function BlendShapesDeformer.save(){
+  
+}
+
+function BlendShapesDeformer.load(){
+  
+}

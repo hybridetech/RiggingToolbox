@@ -1,0 +1,28 @@
+
+require RiggingToolbox;
+
+operator entry(){
+   	
+   	GeometryStack stack();
+   	stack.addGeometryOperator(PolygonMeshSphereGenerator());
+   	stack.initCachePoints();
+
+    EvalContext context();
+    {
+	    Geometry geometries[] = stack.evaluate(context);
+
+	    report("NumGeometries:" + geometries.size);
+	    for(Integer i=0; i<geometries.size; i++){
+	        report(geometries[i].getDesc(false, false));
+	    }
+	}
+	{
+	    Geometry geometries[] = stack.evaluate(context);
+
+	    report("NumGeometries:" + geometries.size);
+	    for(Integer i=0; i<geometries.size; i++){
+	        report(geometries[i].getDesc(false, false));
+	    }
+	}
+}
+

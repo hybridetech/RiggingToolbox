@@ -1,0 +1,45 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+object PolygonMeshSphereGenerator : BaseGenerator {
+  Scalar radius;
+  UInt32 detail;
+  Boolean uvs;
+  Boolean normals;
+};
+
+function PolygonMeshSphereGenerator(){
+  this.radius = 3.0;
+  this.detail = 4;
+  this.uvs = true;
+  this.normals = true;
+}
+
+function String[] PolygonMeshSphereGenerator.getModifiedAttributes(){
+	String result[];
+	result.push('positions');
+	if(this.normals)
+		result.push('normals');
+	if(this.uvs)
+		result.push('uvs');
+	return result;
+}
+
+
+function Boolean PolygonMeshSphereGenerator.cacheResults(){
+  return true;
+}
+
+function PolygonMeshSphereGenerator.evaluate(EvalContext context, io Geometry geometries[]){
+  report("PolygonMeshSphereGenerator.evaluate:" + context);
+  geometries.resize(1);
+  PolygonMesh mesh();
+  mesh.addSphere(Xfo(), this.radius, this.detail, this.normals, this.uvs);
+  geometries[0] = mesh;
+}
+
+

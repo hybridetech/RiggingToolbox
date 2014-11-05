@@ -1,0 +1,41 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+object PolygonMeshPlaneGenerator : BaseGenerator {
+  Scalar length;
+  Scalar width;
+  UInt32 lengthSections;
+  UInt32 widthSections;
+  Boolean normals;
+  Boolean uvs;
+};
+
+function PolygonMeshPlaneGenerator(){
+
+}
+
+function String[] PolygonMeshPlaneGenerator.getModifiedAttributes(){
+  String result[];
+  result.push('positions');
+  if(this.normals)
+    result.push('normals');
+  if(this.uvs)
+    result.push('uvs');
+  return result;
+}
+
+function Boolean PolygonMeshPlaneGenerator.cacheResults(){
+  return false;
+}
+
+function PolygonMeshPlaneGenerator.evaluate(EvalContext context, io Geometry geometries[]){
+  geometries.resize(1);
+  geometries[0] = PolygonMesh();
+  geometries[0].addPlane(Xfo(), this.length, this.width, this.lengthSections, this.widthSections, this.normals, this.uvs);
+}
+
+

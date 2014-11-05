@@ -1,0 +1,18 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+interface CachePoint  {
+
+	invalidate!();
+	Boolean isValid();
+	init!(Geometry geometries[]);
+	restore(io Geometry geometries[]);
+	update!(io Geometry geometries[]);
+};
+
+
+ 

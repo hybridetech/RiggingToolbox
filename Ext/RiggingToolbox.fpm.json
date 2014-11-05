@@ -5,8 +5,15 @@
     "Math/softClamp.kl",
     "Math/pivotDistanceLimit.kl",
     "Kinematics/solveNCFIK.kl",
-    "Deformers/blendShapes.kl",
-    "Deformers/deltaMush.kl",
-    "Deformers/skinning.kl"
+    "GeometryStack/BaseStack/Listener.kl",
+    "GeometryStack/BaseStack/Notifier.kl",
+    "GeometryStack/BaseStack/GeometryOperator.kl",
+    "GeometryStack/BaseStack/Generator.kl",
+    "GeometryStack/BaseStack/Deformer.kl",
+    "GeometryStack/BaseStack/CachePoint.kl",
+    "GeometryStack/BaseStack/GeometryCache.kl",
+    "GeometryStack/BaseStack/GeometryAttributeCache.kl",
+    "GeometryStack/BaseStack/GeometryStack.kl",
+    "GeometryStack/PolygonMeshSphereGenerator.kl"
   ]
 }

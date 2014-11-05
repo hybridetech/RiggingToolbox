@@ -1,0 +1,12 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+object Notifier;
+
+interface Listener {
+	notify!(Notifier notifier, String type, String data);
+};

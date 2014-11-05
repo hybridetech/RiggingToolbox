@@ -1,0 +1,19 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+
+object PolygonMeshDeformer : BaseDeformer {
+	UInt32 polyMeshIndices[];
+};
+
+function PolygonMeshDeformer.bind!(Geometry geometries[]){
+	this.polyMeshIndices.resize(0);
+	for(Integer i=0; i<geometries.size; i++){
+		if(geometries[index] != null && geometries[index].type() == PolygonMesh)
+			this.polyMeshIndices.push(i);
+	}
+}

@@ -1,0 +1,28 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+object Notifier {
+	Listener listeners[];
+};
+
+function Notifier.addListener!(Listener listener){
+	for(Integer i=0; i<this.listeners.size; i++){
+		if(this.listeners[i] === listener)
+			return;
+	}
+	this.listeners.push(listener);
+}
+
+
+function Notifier.notify(String type, String data){
+	for(Integer i=0; i<this.listeners.size; i++){
+		// Cast the listener to an non-const value.
+		Ref<Listener> listener = this.listeners[i];
+		listener.notify(this, type, data);
+	}
+}
+

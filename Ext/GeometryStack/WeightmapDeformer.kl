@@ -1,0 +1,32 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+
+object WeightmapDeformer : PolygonMeshDeformer {
+	Weightmap weightmap;
+	String weightmapName;
+};
+
+function String[] WeightmapDeformer.getUtilizedAttributes(){
+	String result[];
+	result.push('positions');
+	result.push('normals');
+	return result;
+}
+
+function String[] WeightmapDeformer.getModifiedAttributes(){
+	String result[];
+	result.push(this.weightmapName);
+	return result;
+}
+
+
+function WeightmapDeformer.evaluate(EvalContext context, io Geometry geometries[]){
+  WeightmapDeformer_deformGeometries<<<geometries.size()>>>(geometries, this.push);
+}
+
+

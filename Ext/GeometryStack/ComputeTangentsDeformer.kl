@@ -1,0 +1,41 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+
+object ComputeTangentsDeformer : PolygonMeshDeformer {
+	Scalar hardAngleRadians;
+};
+
+function String[] ComputeTangentsDeformer.getUtilizedAttributes(){
+	String result[];
+	result.push('positions');
+	result.push('normals');
+	return result;
+}
+
+function String[] ComputeTangentsDeformer.getModifiedAttributes(){
+	String result[];
+	result.push('positions');
+	return result;
+}
+
+/// Per-geometry computation of the push. 
+/// \internal
+operator ComputeTangentsDeformer_deformGeometries<<<index>>>(
+  io Geometry geometries[],
+  UInt32 polyMeshIndices[]
+){
+	PolygonMesh mesh = geometries[polyMeshIndices[index]];
+	mesh.recomputeTangentsIfRequired( );
+	return true;
+}
+
+function ComputeTangentsDeformer.evaluate(EvalContext context, io Geometry geometries[]){
+  ComputeTangentsDeformer_deformGeometries<<<this.polyMeshIndices.size()>>>(geometries, this.polyMeshIndices);
+}
+
+

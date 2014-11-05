@@ -1,0 +1,17 @@
+
+require RiggingToolbox;
+
+operator entry(){
+   	
+    PolygonMeshSphereGenerator sphereGenerator();
+
+    EvalContext context();
+    Geometry geometries[];
+    sphereGenerator.evaluate(context, geometries);
+
+    report("NumGeometries:" + geometries.size);
+    for(Integer i=0; i<geometries.size; i++){
+        report(geometries[i].getDesc(false, false));
+    }
+}
+

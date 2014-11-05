@@ -1,0 +1,60 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+
+object PushDeformer : PolygonMeshDeformer {
+	Scalar push;
+};
+
+function String[] PushDeformer.getUtilizedAttributes(){
+	String result[];
+	result.push('positions');
+	result.push('normals');
+	return result;
+}
+
+function String[] PushDeformer.getModifiedAttributes(){
+	String result[];
+	result.push('positions');
+	return result;
+}
+
+
+/// The per-point operator that computes the push of the vertices. 
+/// \internal
+operator PushDeformer_pushPositionsAlongNormals<<<index>>>(
+  io Vec3 positions[],
+  Vec3 normals[],
+  Scalar push
+){
+  positions[index] += normals[index] * push;
+}
+
+/// Per-geometry computation of the push. 
+/// \internal
+operator PushDeformer_deformGeometries<<<index>>>(
+  io Geometry geometries[],
+  Scalar push
+){
+	Ref<GeometryAttributes> attributes = geometries[index].getAttributes();
+	Vec3Attribute positionsAttribute = attributes.positionsAttribute;
+	Vec3Attribute normalsAttribute = attributes.normalsAttribute;
+
+	PushDeformer_pushPositionsAlongNormals<<<attributes.size()>>>(
+		positionsAttribute.values,
+		normalsAttribute.values,
+		push
+	);
+	positionsAttribute.incrementVersion();
+	return true;
+}
+
+function PushDeformer.evaluate(EvalContext context, io Geometry geometries[]){
+  PushDeformer_deformGeometries<<<geometries.size()>>>(geometries, this.push);
+}
+
+

@@ -1,0 +1,138 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+
+object GeometryStack : Listener {
+	Geometry geometries[];
+	GeometryOperator geomOperators[];
+	CachePoint cachePoints[];
+	UInt32 dirtyPoint;
+
+
+	// e.g. If a deformer modifies positions, and the subsequent deformer
+	// ultilizes normals, and there is a dependeny from normals to positions
+	// then normals have to be automatically recomputed before the next deformer is run. 
+	String implicitDependencies[String][];
+};
+
+function GeometryStack() {
+	this.init();
+}
+
+
+function GeometryStack.init!() {
+	this.addAttributeDependency('normals', 'positions');
+	this.addAttributeDependency('tangents', 'positions');
+	this.addAttributeDependency('tangents', 'normals');
+}
+
+function GeometryStack.addAttributeDependency!(String from, String to) {
+	if(!this.implicitDependencies.has(from)){
+		String emptyArray[];
+		this.implicitDependencies[from] = emptyArray;
+	}
+	this.implicitDependencies[from].push(to);
+}
+
+function GeometryStack.addGeometryOperator!(GeometryOperator op) {
+	this.geomOperators.push(op);
+}
+
+// Prepare the cache points.
+function GeometryStack.initCachePoints!() {
+	String cachedAttributes[][];
+	String prevModifiedAttributes[];
+	cachedAttributes.resize(this.geomOperators.size);
+	for(Integer i=this.geomOperators.size-1; i>=0; i--){
+		String modifiedAttributes[] = this.geomOperators[i].getModifiedAttributes();
+		report("modifiedAttributes:" + modifiedAttributes);
+		for(Integer j=0; j<modifiedAttributes.size; j++){
+			Boolean found = false;
+			for(Integer k=0; k<prevModifiedAttributes.size; k++){
+				if(modifiedAttributes[j] == prevModifiedAttributes[k])
+					found = true;
+			}
+			if(!found)
+				cachedAttributes[i].push(modifiedAttributes[j]);
+		}
+		prevModifiedAttributes = modifiedAttributes;
+	}
+	this.cachePoints.resize(this.geomOperators.size);
+	prevModifiedAttributes.resize(0);
+	Generator generator = null;
+	for(Integer i=0; i<this.geomOperators.size; i++){
+		if(generator)
+			if(generator.cacheResults())
+				this.cachePoints[i] = GeometryCache();
+		else{
+			if(cachedAttributes[i].size > 0)
+				this.cachePoints[i] = GeometryAttributeCache(cachedAttributes[i]);
+
+			// String utilizedAttributes[] = this.geomOperators[i].getUtilizedAttributes();
+			// for(Integer j=0; j<utilizedAttributes.size; j++){
+			// 	if(this.implicitDependencies.has(utilizedAttributes[j])){
+			// 		String attributeDependencies[] = this.implicitDependencies[utilizedAttributes[j]];
+			// 		for(Integer k=0; k<prevModifiedAttributes.size; k++){
+			// 			if(attributeDependencies[j] == prevModifiedAttributes[k])
+			// 				found = true;
+			// 		}
+			// 	}
+			// }
+			// prevModifiedAttributes = this.geomOperators[i].getModifiedAttributes();
+		}
+		generator = this.geomOperators[i];
+	}
+}
+
+
+function GeometryStack.notify!(Notifier notifier, String type, String data) {
+	switch(type){
+	case 'changed':
+		for(Integer i=0; i<this.geomOperators.size; i++){
+			Notifier op = this.geomOperators[i];
+			if(op === notifier){
+				this.dirtyPoint = i;
+				break;
+			}
+		}
+		break;
+	}
+}
+
+// Pull-model evaluation. Evaluation can be recursive when multiple stacks are used in conjunction.
+// e.g. 
+//  [ LoadAlembic, SkinningDeformer ]
+//                                  |
+//             [ LoadAlembic, WrapDeformer ] ->
+function Geometry[] GeometryStack.evaluate!(EvalContext context) {
+	this.dirtyPoint = 0;// force evlauation all the time.
+	if(this.dirtyPoint < this.geomOperators.size){
+		for(Integer i=this.dirtyPoint; i<this.geomOperators.size; i++){
+			CachePoint cachePoint = this.cachePoints[i];
+			if(cachePoint != null && cachePoint.isValid())
+				cachePoint.restore(this.geometries);
+			else{
+				this.geomOperators[i].evaluate(context, this.geometries);
+				if(cachePoint != null)
+					cachePoint.init(this.geometries);
+			}
+			this.dirtyPoint++;
+		}
+	}
+	return this.geometries;
+}
+
+
+
+function String GeometryStack.saveJSON(){
+	String json;
+	return json;
+}
+
+function GeometryStack.loadJSON!(String json){
+  
+}

@@ -1,0 +1,13 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+interface GeometryOperator {
+	// returns the list of attributes modifed by the deformer. 
+	String[] getModifiedAttributes();
+	
+	evaluate(EvalContext context, io Geometry geometries[]);
+};

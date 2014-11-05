@@ -1,0 +1,172 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+object SkinningDeformer : BaseDeformer {
+  Mat44 invReferencePose[];
+  Mat44 skinningMatrices[];
+  Mat44 bindShapeTransforms[];
+};
+
+
+function String[] SkinningDeformer.getUtilizedAttributes(){
+  String result[];
+  result.push('positions');
+  result.push('normals');
+  result.push('skinningData');
+  return result;
+}
+
+function String[] SkinningDeformer.getModifiedAttributes(){
+  String result[];
+  result.push('positions');
+  result.push('normals');
+  return result;
+}
+
+
+function SkinningDeformer.bind!(Geometry geometries[]){
+  this.bindShapeTransforms.resize(geometries.size);
+  for(Integer i=0; i<geometries.size; i++){
+    BaseGeometry geometry = geometries[i];
+    Ref<GeometryAttributes> attributes = geometry.getAttributes();
+    if( !attributes.has("skinningData") ){
+      setError("ERROR: Geometry does not have skinningData:" + geometry.debugName);
+      return false;
+    }
+    if(geometry.metaData.has('bindShapeTransform')){
+      GenericMat44Value bindShapeTransform = geometry.metaData.get('bindShapeTransform');
+      this.bindShapeTransforms[i] = bindShapeTransform.value;
+    }
+  }
+}
+
+function SkinningDeformer.setReferencePose!(Mat44 referencePose[]){
+  this.skinningMatrices.resize(referencePose.size);
+  for (Integer i = 0; i < referencePose.size; i++)
+    this.invReferencePose[i] = referencePose.inverse();
+  this.skinningMatrices.resize(referencePose.size);
+}
+
+function SkinningDeformer.setPose!(Mat44 pose[]){
+  if(pose.size != this.referencePose.size){
+    setError('Pose count does not match the reference pose count referencePose:' + referencePose.size + " != " + pose.size);
+    return;
+  }
+  for (Integer i = 0; i < pose.size; i++) {
+    this.skinningMatrices[i] = pose[i] * this.invReferencePose[i];
+  }
+}
+
+/// The per-point operator that computes the linear blend skinning. 
+/// \internal
+operator skinPositions<<<index>>>(
+  io Vec3 positions[],
+  SkinningAttribute skinningAttr,
+  Mat44 skinningPosAndNormMatrices[]
+){
+  Vec3 srcPos = positions[index];
+
+  LocalL16UInt32Array indices;
+  LocalL16ScalarArray weights;
+  skinningAttr.getPairs(index, indices, weights);
+
+  Vec3 position(0,0,0);
+  for( UInt32 i = 0; i < indices.size(); ++i ) {
+    Scalar boneWeight = weights.get(i);
+    if( boneWeight == 0.0 )
+      break;
+    UInt32 boneId = indices.get(i);
+    position += (skinningPosAndNormMatrices[boneId*2] * srcPos) * boneWeight;
+  }
+
+  positions[index] = position;
+}
+
+/// The per-point operator that computes the linear blend skinning. 
+/// \internal
+operator skinPositionsAndNormals<<<index>>>(
+  io Vec3 positions[],
+  io Vec3 normals[],
+  SkinningAttribute skinningAttr,
+  Mat44 skinningPosAndNormMatrices[]
+){
+  Vec3 srcPos = positions[index];
+  Vec3 srcNorm = normals[index];
+  Vec3 position(0,0,0);
+  Vec3 normal(0,0,0);
+
+  LocalL16UInt32Array indices;
+  LocalL16ScalarArray weights;
+  skinningAttr.getPairs(index, indices, weights);
+  
+  for( UInt32 i = 0; i < indices.size(); ++i ) {
+    Scalar boneWeight = weights.get(i);
+    if( boneWeight == 0.0 )
+      break;
+    UInt32 boneId = indices.get(i);
+    position += (skinningPosAndNormMatrices[boneId*2] * srcPos) * boneWeight;
+    normal += (skinningPosAndNormMatrices[boneId*2+1] * srcNorm) * boneWeight;
+  }
+  Scalar length = normal.length();//Don't call setUnit to avoid runtime error reports..
+  if( length > 0.0001 )
+    normal *= 1.0 / length;
+
+  positions[index] = position;
+  normals[index] = normal;
+}
+
+/// Computes the deformation of the character using linear blend skinning. 
+/// \internal
+operator deformGeometries<<<index>>>(
+  io Geometry geometries[],
+  Mat44 skinningMatrices[]
+){
+  Ref<GeometryAttributes> attributes = geometries[index].getAttributes();
+
+  if( !attributes.has("skinningData") ){
+    setError("ERROR: Geometry does not have skinningData");
+    return false;
+  }
+  
+  Vec3Attribute positionsAttribute = attributes.positionsAttribute;
+  Vec3Attribute normalsAttribute = attributes.normalsAttribute;
+  SkinningAttribute skinningAttr = attributes.getAttribute("skinningData");
+
+  if(normalsAttribute == null){
+    skinPositions<<<attributes.size()>>>(
+      positionsAttribute.values,
+      skinningAttr,
+      skinningPosAndNormMatrices
+    );
+    positionsAttribute.incrementVersion();
+  }
+  else{
+    skinPositionsAndNormals<<<attributes.size()>>>(
+      positionsAttribute.values,
+      normalsAttribute.values,
+      skinningAttr,
+      skinningPosAndNormMatrices
+    );
+    positionsAttribute.incrementVersion();
+    normalsAttribute.incrementVersion();
+  }
+  return true;
+}
+
+function SkinningDeformer.evaluate(EvalContext context, io Geometry geometries[]){
+
+  Mat44 skinningPosAndNormMatrices[];
+  skinningPosAndNormMatrices.resize( this.skinningMatrices.size()*2 );
+  for( UInt32 i = 0; i < this.skinningMatrices.size(); ++i ) {
+    skinningPosAndNormMatrices[i*2] = this.skinningMatrices[i] * this.bindShapeTransforms[i];
+    skinningPosAndNormMatrices[i*2 + 1] = skinningPosAndNormMatrices[i*2];
+    skinningPosAndNormMatrices[i*2 + 1].zeroTranslation();
+  }
+
+  deformGeometries<<<geometries.size()>>>(geometries, skinningPosAndNormMatrices);
+}
+
