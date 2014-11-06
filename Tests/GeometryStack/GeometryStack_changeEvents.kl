@@ -10,7 +10,6 @@ operator entry(){
    	stack.addGeometryOperator(sphereGenerator);
    	stack.addGeometryOperator(pushDeformer);
    	stack.initCachePoints();
-   	stack.disableCachePoint(1);
 
     EvalContext context();
     {
@@ -21,7 +20,7 @@ operator entry(){
 	        report(geometries[i].getDesc(true, true));
 	    }
 	}
-	
+	pushDeformer.setPushDist(6.0);
 	{
 	    Geometry geometries[] = stack.evaluate(context);
 

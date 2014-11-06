@@ -10,6 +10,7 @@ object Notifier {
 };
 
 function Notifier.addListener!(Listener listener){
+	// TODO: make this method threadsafe. 
 	for(Integer i=0; i<this.listeners.size; i++){
 		if(this.listeners[i] === listener)
 			return;

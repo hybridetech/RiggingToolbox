@@ -31,6 +31,12 @@ function String[] PushDeformer.getModifiedAttributes(){
 	return result;
 }
 
+function PushDeformer.setPushDist!(Scalar push){
+	this.push = push;
+	String data;
+	this.notify('changed', data);
+}
+
 
 /// The per-point operator that computes the push of the vertices. 
 /// \internal

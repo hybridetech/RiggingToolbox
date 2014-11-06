@@ -40,6 +40,11 @@ function GeometryStack.addAttributeDependency!(String from, String to) {
 
 function GeometryStack.addGeometryOperator!(GeometryOperator op) {
 	this.geomOperators.push(op);
+
+	// Note: the 'in' arg becomes 'io' here.
+	Notifier notifier = op;
+	if(notifier)
+		notifier.addListener(this);
 }
 
 // Prepare the cache points.
@@ -56,7 +61,6 @@ function GeometryStack.initCachePoints!() {
 			if(modifiedAttributes.size > 0)
 				this.cachePoints[i] = GeometryAttributeCache(modifiedAttributes);
 		}
-		generator = this.geomOperators[i];
 	}
 }
 
@@ -71,12 +75,17 @@ function GeometryStack.enableCachePoint!(UInt32 index) {
 }
 
 function GeometryStack.notify!(Notifier notifier, String type, String data) {
+	report(" GeometryStack.notify:" + type + ":" + data);
 	switch(type){
 	case 'changed':
 		for(Integer i=0; i<this.geomOperators.size; i++){
 			Notifier op = this.geomOperators[i];
 			if(op === notifier){
 				this.dirtyPoint = i;
+				for(Integer j=0; j<this.geomOperators.size; j++){
+					if(this.cachePoints[j] != null)
+						this.cachePoints[j].invalidate();
+				}
 				break;
 			}
 		}
@@ -114,6 +123,8 @@ function Geometry[] GeometryStack.evaluate!(EvalContext context) {
 			if(cachePoint != null && cachePoint.isValid())
 				cachePoint.restore(this.geometries);
 			else{
+
+				report("this.geomOperators[i].evaluate:" + this.geomOperators[i].type());
 				this.geomOperators[i].evaluate(context, this.geometries);
 				if(cachePoint != null)
 					cachePoint.init(this.geometries);

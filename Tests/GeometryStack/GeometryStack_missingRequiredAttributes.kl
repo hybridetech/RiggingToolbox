@@ -4,7 +4,7 @@ require RiggingToolbox;
 operator entry(){
    	
    	GeometryStack stack();
-   	stack.addGeometryOperator(PolygonMeshSphereGenerator(2.0, 2, true, false));
+   	stack.addGeometryOperator(PolygonMeshSphereGenerator(2.0, 1, true, false));
    	stack.addGeometryOperator(PushDeformer());
    	stack.initCachePoints();
 
