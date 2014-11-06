@@ -156,7 +156,7 @@ operator deformGeometries<<<index>>>(
 function SkinningDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
 
   AutoProfilingEvent p(FUNC);
-  if(this.dataVersion != geomSet.getMetaDataVersion()){
+  if(this.dataVersion != geomSet.getVersion()){
     // create an io this pointer so we can cache the values. 
     Ref<SkinningDeformer> io_this = this;
     io_this.bindShapeTransforms.resize(geomSet.size);
@@ -178,7 +178,7 @@ function SkinningDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
       if(skeleton)
         io_this.setReferencePoseFromSkeleton(skeleton);
     }
-    io_this.dataVersion = geomSet.getMetaDataVersion();
+    io_this.dataVersion = geomSet.getVersion();
   }
 
   Mat44 skinningPosAndNormMatrices[];

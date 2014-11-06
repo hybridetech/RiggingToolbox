@@ -20,6 +20,7 @@ inline Size GeometrySet.size() {
 /// resizes the contained value array
 inline GeometrySet.resize!(Size newSize) {
   this.geometries.resize(newSize);
+  this.version++;
 }
 
 /// returns an element the contained value array by index
@@ -30,6 +31,7 @@ inline Geometry GeometrySet.get(Index index) {
 /// sets an element the contained value array by index
 inline GeometrySet.set!(Index index, Geometry value) {
   this.geometries[index] = value;
+  this.version++;
 }
 
 
@@ -50,6 +52,6 @@ function GeometrySet.setMetaData!( String name, Object value ) {
   this.version++;
 }
 /// sets a single object in the metadata
-function UInt32 GeometrySet.getMetaDataVersion() {
+function UInt32 GeometrySet.getVersion() {
   return this.version;
 }

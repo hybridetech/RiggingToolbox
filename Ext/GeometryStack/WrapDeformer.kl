@@ -5,65 +5,136 @@
 require Math;
 require Geometry;
 
+// TODO: eliminate the use of the Geometry types in the compute step.
+struct WrapDeformer_Location {
+  UInt32 attributeIndices[3];
+  Scalar weights[3];
+};
+
 object WrapDeformer : BaseDeformer {
   GeometryLocation locations[][];
-  Vec3 deltas[];
-  GeometryStack sourceGeometries;
+  Vec3 deltas[][];
+  GeometryStack sourceGeometryStack;
+
+  Boolean bound;
+  UInt32 boundVersion;
+  UInt32 srcBoundVersion;
 };
 
 
 function WrapDeformer(){
-  this.threshold = 0.001;
 }
 
+function Mat44 wrapDeformer_buildRefFrame(Vec3 pos, Vec3 nrm, Vec3 tgt){
+  return Mat44();
+}
 
-operator computeBinding<<<index>>>(
-  Vec3 refpositions[],
+operator wrapDeformer_computeBinding<<<index>>>(
+  PolygonMesh srcMesh,
+  Vec3Attribute srcPositionsAttribute,
+  Vec3Attribute srcNormalsAttribute,
+  Vec4Attribute srcTangentsAttribute,
+  io GeometryLocation locations[],
+  io Vec3 deltas[],
   Vec3 positions[],
-  Scalar threshold,
-  io Vec3 deltas[]
 ){
-  Vec3 delta = refpositions - positions[index];
-  if(deltas.lengthSquared() > threshold)
-    positions[index] = position;
+  Vec4 position = positions[index];
+  Vec3 scaling(1.0, 1.0, 1.0);
+  GeometryLocation location = srcMesh.getClosest( position, scaling, SCALAR_INFINITE );
+
+  Vec3 pos = GetAttributeAtLocation( srcMesh, location, srcPositionsAttribute );
+  Vec3 nrm = GetAttributeAtLocation( srcMesh, location, srcNormalsAttribute );
+  Vec3 tgt = GetAttributeAtLocation( srcMesh, location, srcTangentsAttribute );
+
+  // Build a reference frame. 
+  Mat44 mat44 = wrapDeformer_buildRefFrame(pos, nrm, tgt);
+
+  deltas[index] = mat44.inverse() * position;
+  location[index] = location;
 }
 
-
-function WrapDeformer.addTarget(EvalContext context, Geometry targetGeometry){
-
-  computeBinding<<<geomSet.size()>>>(geomSet, skinningPosAndNormMatrices);
-}
-
-
-operator applyDeltas<<<index>>>(
+operator wrapDeformer_applyDeltas<<<index>>>(
+  PolygonMesh srcMesh,
+  Vec3Attribute srcPositionsAttribute,
+  Vec3Attribute srcNormalsAttribute,
+  Vec4Attribute srcTangentsAttribute,
+  GeometryLocation locations[],
+  Vec3 deltas[],
   io Vec3 positions[],
-  UInt32ArrayAllocator deltasAllocator,
-  UInt32 offset,
-  Vec3 deltas[]
 ){
-  UInt32 pointIndex = deltasAllocator.data[offset+index];
-  positions[pointIndex] += deltas[index];
+  GeometryLocation location = location[index];
+  Vec3 pos = GetAttributeAtLocation( srcMesh, location, positionsAttribute );
+  Vec3 nrm = GetAttributeAtLocation( srcMesh, location, normalsAttribute );
+  Vec3 tgt = GetAttributeAtLocation( srcMesh, location, tangentsAttribute );
+
+  Mat44 mat44 = wrapDeformer_buildRefFrame(pos, nrm, tgt);
+  positions[index] = mat44 * deltas[index];
 }
 
 
-operator deformGeometries<<<index>>>(
+operator wrapDeformer_deformGeometries<<<index>>>(
   io GeometrySet geomSet,
-  UInt32ArrayAllocator deltasAllocator,
-  Vec3 deltas[]
+  GeometrySet srcGeomSet,
+  io GeometryLocation locations[][],
+  io Vec3 deltas[][],
+  io Boolean bound
 ){
+  PolygonMesh srcMesh = srcGeomSet.get(0);
+  if(!srcMesh)
+    return;
+
   Ref<GeometryAttributes> attributes = geomSet.get(index).getAttributes();
   Vec3Attribute positionsAttribute = attributes.positionsAttribute;
-  applyDeltas<<<attributes.size()>>>(
-    positionsAttribute.values,
-    deltasAllocator,
-    deltas
-  );
-  positionsAttribute.incrementVersion();
-  return true;
+
+  if(!bound){
+    Vec3Attribute normalsAttribute = attributes.normalsAttribute;
+    Ref<Vec4Attribute> tangentsAttribute = attributes.getVec4Attribute("tangents");
+
+    srcMesh.prepareForSpatialQueries(positionsAttribute.size(), null );
+    Ref<SpatialQuery> query = srcMesh.beginSpatialQuery();
+
+    locations[index].resize(positionsAttribute.size());
+    deltas[index].resize(positionsAttribute.size());
+
+    wrapDeformer_computeBinding<<<positionsAttribute.size()>>>(
+      srcMesh,
+      positionsAttribute,
+      normalsAttribute,
+      tangentsAttribute,
+      locations[index],
+      deltas[index],
+      positionsAttribute.values
+    );
+    srcMesh.endSpatialQuery(query);
+    bound = true;
+  }
+  else{
+    wrapDeformer_applyDeltas<<<positionsAttribute.size()>>>(
+      srcMesh,
+      positionsAttribute,
+      normalsAttribute,
+      tangentsAttribute,
+      locations[index],
+      deltas[index],
+      positionsAttribute.values
+    );
+    positionsAttribute.incrementVersion();
+  }
 }
 
 function WrapDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
-  deformGeometries<<<geomSet.size()>>>(geomSet, skinningPosAndNormMatrices);
+  GeometrySet srcGeomSet = this.sourceGeometryStack.evaluate(context);
+
+  Ref<WrapDeformer> io_this = this;
+  if(srcGeomSet.getVersion() != io_this.srcBoundVersion || geomSet.getVersion() != this.boundVersion){
+    io_this.bound = false;
+  }
+  wrapDeformer_deformGeometries<<<geomSet.size()>>>(geomSet, srcGeomSet, io_this.locations, io_this.deltas, io_this.bound);
+
+  if(io_this.bound){
+    io_this.srcBoundVersion = srcGeomSet.getVersion();
+    io_this.boundVersion = geomSet.getVersion();
+  }
 }
 
 
