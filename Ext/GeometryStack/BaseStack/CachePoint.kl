@@ -14,9 +14,11 @@ interface CachePoint  {
 
 	invalidate!();
 	Boolean isValid();
-	init!(GeometrySet geomSet);
+	update!(GeometrySet geomSet);
 	restore(io GeometrySet geomSet);
-	update!(io GeometrySet geomSet);
+
+	// Free all memory in the cache.
+	free!();
 };
 
 

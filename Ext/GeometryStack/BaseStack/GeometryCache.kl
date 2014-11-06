@@ -35,7 +35,7 @@ function Boolean GeometryCache.isValid() {
   return this.valid;
 }
 
-function GeometryCache.init!(GeometrySet geomSet) {
+function GeometryCache.update!(GeometrySet geomSet) {
   if(this.disabled)
     return;
   AutoProfilingEvent p(FUNC);
@@ -60,10 +60,9 @@ function GeometryCache.restore(io GeometrySet geomSet){
 }
 
 
-function GeometryCache.update!(io GeometrySet geomSet) {
-  if(this.valid)
-    this.init(geomSet);
-  else
-    this.restore(geomSet);
+function GeometryCache.free!(){
+  AutoProfilingEvent p(FUNC);
+  this.cachedGeometries.resize(0);
+  this.topologyVersions.resize(0);
+  this.valid = true;
 }
-

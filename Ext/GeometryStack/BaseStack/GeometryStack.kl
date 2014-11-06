@@ -42,6 +42,7 @@ function GeometryStack.addAttributeDependency!(String from, String to) {
 
 function GeometryStack.addGeometryOperator!(GeometryOperator op) {
 	this.geomOperators.push(op);
+	this.cachePoints.resize(this.geomOperators.size);
 
 	// Note: the 'in' arg becomes 'io' here.
 	Notifier notifier = op;
@@ -49,22 +50,6 @@ function GeometryStack.addGeometryOperator!(GeometryOperator op) {
 		notifier.addListener(this);
 }
 
-// Prepare the cache points.
-function GeometryStack.initCachePoints!() {
-	this.cachePoints.resize(this.geomOperators.size);
-	for(Integer i=0; i<this.geomOperators.size; i++){
-		Generator generator = this.geomOperators[i];
-		if(generator){
-			if(generator.cacheResults())
-				this.cachePoints[i] = GeometryCache();
-		}
-		else{
-			String modifiedAttributes[] = this.geomOperators[i].getModifiedAttributes();
-			if(modifiedAttributes.size > 0)
-				this.cachePoints[i] = GeometryAttributeCache(modifiedAttributes);
-		}
-	}
-}
 
 function GeometryStack.disableCachePoint!(UInt32 index) {
 	if(this.cachePoints[index] != null)
@@ -106,11 +91,12 @@ function GeometrySet GeometryStack.evaluate!(EvalContext context) {
 	this.dirtyPoint = 0;// force evlauation all the time.
 	if(this.dirtyPoint < this.geomOperators.size){
 		for(Integer i=this.dirtyPoint; i<this.geomOperators.size; i++){
+			GeometryOperator op = this.geomOperators[i];
 
 			// Now check the geometries if they have the attributes required by the next operation.
 			Boolean debug = true;
 			if(debug){
-				String requiredAttributes[] = this.geomOperators[i].getRequiredAttributes();
+				String requiredAttributes[] = op.getRequiredAttributes();
 				for(Integer k=0; k<this.geomSet.size; k++){
 					String missingAttributes[];
 					for(Integer j=0; j<requiredAttributes.size; j++){
@@ -119,7 +105,7 @@ function GeometrySet GeometryStack.evaluate!(EvalContext context) {
 							missingAttributes.push(requiredAttributes[j]);
 					}
 					if(missingAttributes.size > 0){
-						setError("Cannot evaluate '" + this.geomOperators[i].type() + "'. Geometry missing required attributes:" + missingAttributes);
+						setError("Cannot evaluate '" + op.type() + "'. Geometry missing required attributes:" + missingAttributes);
 						return this.geomSet;
 					}
 				}
@@ -129,9 +115,21 @@ function GeometrySet GeometryStack.evaluate!(EvalContext context) {
 			if(cachePoint != null && cachePoint.isValid())
 				cachePoint.restore(this.geomSet);
 			else{
-				this.geomOperators[i].evaluate(context, this.geomSet);
-				if(cachePoint != null)
-					cachePoint.init(this.geomSet);
+				op.evaluate(context, this.geomSet);
+
+				// If the op requests the results to be cached. (this may depend on the size of the data)
+				// we then generate an appropriate cache point and initialize it. 
+				if(op.cacheResults()){
+					if(cachePoint == null){
+						Generator generator = op;
+						if(generator)
+							cachePoint = GeometryCache();
+						else
+							cachePoint = GeometryAttributeCache(op.getModifiedAttributes());
+						this.cachePoints[i] = cachePoint;
+					}
+					cachePoint.update(this.geomSet);
+				}
 			}
 			this.dirtyPoint++;
 		}

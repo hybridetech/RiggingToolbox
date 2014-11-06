@@ -41,7 +41,7 @@ function GeometryAttributeCache.setCachedAttributeNames!(String cachedAttributes
   this.cachedAttributesNames = cachedAttributesNames.clone();
 }
 
-function GeometryAttributeCache.init!(GeometrySet geomSet) {
+function GeometryAttributeCache.update!(GeometrySet geomSet) {
   if(this.disabled)
     return;
   AutoProfilingEvent p(FUNC);
@@ -90,11 +90,9 @@ function GeometryAttributeCache.restore(io GeometrySet geomSet){
 }
 
 
-function GeometryAttributeCache.update!(io GeometrySet geomSet) {
-  if(this.valid)
-    this.init(geomSet);
-  else
-    this.restore(geomSet);
+function GeometryAttributeCache.free!(){
+  AutoProfilingEvent p(FUNC);
+  this.cachedAttributes.resize(0);
+  this.attributeVersions.resize(0);
+  this.valid = true;
 }
-
-

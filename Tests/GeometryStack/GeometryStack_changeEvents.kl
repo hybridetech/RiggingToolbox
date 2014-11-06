@@ -11,7 +11,6 @@ operator entry(){
    	sphereGenerator.enableCaching = true;
    	stack.addGeometryOperator(sphereGenerator);
    	stack.addGeometryOperator(pushDeformer);
-   	stack.initCachePoints();
 
     EvalContext context();
     stack.evaluate(context);

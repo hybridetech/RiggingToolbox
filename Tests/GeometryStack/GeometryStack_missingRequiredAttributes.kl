@@ -6,7 +6,6 @@ operator entry(){
    	GeometryStack stack();
    	stack.addGeometryOperator(PolygonMeshSphereGenerator(2.0, 1, true, false));
    	stack.addGeometryOperator(PushDeformer());
-   	stack.initCachePoints();
 
     EvalContext context();
     // Causes and erorr because the PushDeformer requires normals, but the sphere doesn't have them. 
