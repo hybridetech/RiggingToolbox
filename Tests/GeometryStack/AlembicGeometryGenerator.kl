@@ -3,15 +3,15 @@ require RiggingToolbox;
 
 operator entry(){
    	
-    PolygonMeshSphereGenerator sphereGenerator();
+  	FilePath path("${FABRIC_RIGGINGTOOLBOX_PATH}/Tests/GeometryStack/cubeTest.abc");
+    AlembicGeometryGenerator alembicGenerator(path);
 
     EvalContext context();
     GeometrySet geomSet();
-    sphereGenerator.evaluate(context, geomSet);
+    alembicGenerator.evaluate(context, geomSet);
 
     report("NumGeometries:" + geomSet.size);
     for(Integer i=0; i<geomSet.size; i++){
         report(geomSet.get(i).getDesc(false, false));
     }
 }
-

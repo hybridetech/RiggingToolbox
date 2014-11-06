@@ -110,7 +110,7 @@ function String[] AlembicIWStringArrayProperty.get() {
 object AlembicGeometryGenerator : BaseGenerator {
 
   /// the file path of the alembic file. 
-  String filePath;
+  FilePath filePath;
 
   /// An array of joints which must be included in the skeleton
   String includedBones[];
@@ -139,12 +139,12 @@ function AlembicGeometryGenerator() {
 }
 
 /// Constructor taking a file path to load the alembic file on disk
-function AlembicGeometryGenerator(String filePath) {
+function AlembicGeometryGenerator(FilePath filePath) {
   this.setFilePath(filePath);
 }
 
 /// Sets the file path of the alembic file. 
-inline  AlembicGeometryGenerator.setFilePath!(String filePath){
+inline  AlembicGeometryGenerator.setFilePath!(FilePath filePath){
   this.filePath = filePath;
 }
 
@@ -228,15 +228,15 @@ function AlembicGeometryGenerator.addChildrenToSkeleton(String pathStr, String x
 function AlembicGeometryGenerator.evaluate(EvalContext context, io GeometrySet geomSet){
 {
     // Check for an absolute file path, then a relative path.
-    FilePath filePathObj(this.filePath);
-    if(!filePathObj.exists()){
-      report("File not found:" + this.filePath);
+    FilePath expandedPath = this.filePath.expandEnvVars();
+    if(!expandedPath.exists()){
+      report("File not found:" + expandedPath.string());
       return;
     }
 
-    report("Importing:" + filePathObj.string());
+    report("Importing:" + expandedPath.string());
 
-    AlembicArchiveReader archive(filePathObj.string());
+    AlembicArchiveReader archive(expandedPath.string());
 
     String xformPaths[] = archive.getPathsOfType('Xform');
     String transformNames[];
@@ -318,6 +318,7 @@ function AlembicGeometryGenerator.evaluate(EvalContext context, io GeometrySet g
       this.mergeSet(deformerNamesUnion, deformerNames);
 
       GenericMat44Value bindShapeTransform(Mat44());
+      AutoLock AL(mesh.metaData.lock);
       mesh.metaData.lockedSet('bindShapeTransform', bindShapeTransform);
       geomSet.set(i, mesh);
     }
