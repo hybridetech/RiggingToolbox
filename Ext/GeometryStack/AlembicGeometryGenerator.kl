@@ -1,0 +1,649 @@
+/*
+ *  Copyright 2010-2014 Fabric Software Inc. All rights reserved.
+ */
+
+require Alembic;
+require Characters;
+
+
+object AlembicIWStringArrayProperty {
+  AlembicIArrayProperty prop;
+};
+
+function AlembicIWStringArrayProperty(AlembicICompoundProperty parent, String name) {
+  this.prop = AlembicIArrayProperty(parent, name);
+}
+
+function AlembicIWStringArrayProperty(AlembicIArrayProperty prop) {
+  this.prop = prop;
+}
+
+function Boolean AlembicIWStringArrayProperty.valid() {
+  return this.prop.valid();
+}
+
+function AlembicIWStringArrayProperty.reset!() {
+  this.prop.reset();
+}
+
+function AlembicPropertyHeader AlembicIWStringArrayProperty.getHeader() {
+  return this.prop.getHeader();
+}
+
+function String AlembicIWStringArrayProperty.getName() {
+  return this.prop.getName();
+}
+
+function AlembicPropertyType AlembicIWStringArrayProperty.getPropertyType() {
+  return this.prop.getPropertyType();
+}
+
+function Boolean AlembicIWStringArrayProperty.isScalar() {
+  return this.prop.isScalar();
+}
+
+function Boolean AlembicIWStringArrayProperty.isArray() {
+  return this.prop.isArray();
+}
+
+function Boolean AlembicIWStringArrayProperty.isCompound() {
+  return this.prop.isCompound();
+}
+
+function Boolean AlembicIWStringArrayProperty.isSimple() {
+  return this.prop.isSimple();
+}
+
+function AlembicMetaData AlembicIWStringArrayProperty.getMetaData() {
+  return this.prop.getMetaData();
+}
+
+function AlembicDataType AlembicIWStringArrayProperty.getDataType() {
+  return this.prop.getDataType();
+}
+
+function AlembicTimeSampling AlembicIWStringArrayProperty.getTimeSampling() {
+  return this.prop.getTimeSampling();
+}
+
+function AlembicIObject AlembicIWStringArrayProperty.getObject() {
+  return this.prop.getObject();
+}
+
+function UInt32 AlembicIWStringArrayProperty.getNumSamples() {
+  return this.prop.getNumSamples();
+}
+function Boolean AlembicIWStringArrayProperty.isConstant() {
+  return this.prop.isConstant();
+}
+function AlembicICompoundProperty AlembicIWStringArrayProperty.getParent() {
+  return this.prop.getParent();
+}
+
+function String[] AlembicIWStringArrayProperty.get(AlembicISampleSelector iSS) {
+  AlembicDataType dt = this.getDataType();
+  String values[];
+  if(dt.getExtent() != 1) {
+    setError('AlembicIWStringArrayProperty.get: Extent != 1.');
+    return values;
+  }
+  if(dt.getPod() == Alembic_kWstringPOD)
+    values = this.prop.getAsString(iSS);
+  else
+    setError('AlembicIWStringArrayProperty.get: Encapsulated AlembicIArrayProperty has invalid POD.');
+  return values;
+}
+
+function String[] AlembicIWStringArrayProperty.get() {
+  return this.get(AlembicISampleSelector(0));
+}
+
+
+function String InlineTransformBase.getName() {
+  AutoLock AL(this.lock);
+  return this.getName();
+}
+
+
+/**
+ 
+  \endexample
+  \seealso FbxCharacter
+*/
+
+object AlembicGeometryGenerator : Character {
+
+  /// the file path of the alembic file. 
+  String filePath;
+
+  AlembicArchiveReader archive;
+
+  /// An array of joints which must be included in the skeleton
+  String includedBones[];
+
+  /// An array of joints whose subtrees must be included in the skeleton
+  String includedSubtrees[];
+
+
+  /// A dictionary of colors to assign the bone chains. Only the root of a given
+  /// chain needs to be specified, and all children willl be assigned the color.
+  /// Colors can be overridden at any point in the hierarchy.
+  Color chainColors[String];
+
+  /// A dictionary of name suffixes used to generate bone colors. 
+  /// All joints whose names end in a specified suffix will be assigned the
+  /// mapped color. The suffixColors override the chainColors.
+  Color suffixColors[String];
+};
+
+
+
+/// Constructor taking a file path to load the alembic file on disk
+function AlembicGeometryGenerator() {
+  this.lock = SimpleLock('AlembicGeometryGenerator');
+}
+
+/// Constructor taking a file path to load the alembic file on disk
+function AlembicGeometryGenerator(String filePath) {
+  this.lock = SimpleLock('AlembicGeometryGenerator');
+  this.load(filePath);
+}
+
+/// Returns the file path of the alembic file. 
+inline String AlembicGeometryGenerator.getFilePath(){
+  return this.filePath;
+}
+
+inline String AlembicGeometryGenerator.getNameFromPath(String pathStr) {
+  String path[] = pathStr.split('/');
+  return path[path.size-1];
+}
+
+function String AlembicGeometryGenerator.getParentPath(String pathStr) {
+  String path[] = pathStr.split('/');
+  String parentPath;
+  for(Integer j=0; j<path.size-1; j++){
+    if(j==0)
+      parentPath = path[j];
+    else
+      parentPath = parentPath + "/" + path[j];
+  }
+  return parentPath;
+}
+
+function Integer AlembicGeometryGenerator.findItem(String set[], String item) {
+  for(Integer j=0; j<set.size-1; j++){
+    if(item == set[j])
+      return j;
+  }
+  return -1;
+}
+
+function Integer AlembicGeometryGenerator.findItemByName(String set[], String item) {
+  String name = this.getNameFromPath(item);
+  for(Integer j=0; j<set.size; j++){
+    if(name == set[j])
+      return j;
+  }
+  return -1;
+}
+
+function AlembicGeometryGenerator.mergeSet(io String set[], String merge[]) {
+  for(Integer i=0; i<merge.size; i++){
+    Boolean found = false;
+    for(Integer j=0; j<set.size; j++)
+      if(merge[i] == set[j])
+        found = true;
+    if(!found)
+      set.push(merge[i]);
+  }
+}
+
+function AlembicGeometryGenerator.collectHierarchy(String pathStr, io String skeletonBonePaths[]) {
+  if(this.findItem(skeletonBonePaths, pathStr) == -1){
+    String parentPath = this.getParentPath(pathStr);
+    if(parentPath != "")
+      this.collectHierarchy(parentPath, skeletonBonePaths);
+
+    // String path[] = pathStr.split('/');
+    // report("collectHierarchy:" + path[path.size-1]);
+    skeletonBonePaths.push(pathStr);
+  }
+}
+
+
+
+/// Collects all items in the hierachy below the given item and adds them to the bone identifiers list
+/// \internal
+function AlembicGeometryGenerator.addChildrenToSkeleton(String pathStr, String xformPaths[], io String skeletonBonePaths[]) {
+  for(Integer i=0; i<xformPaths.size; i++){
+    if(xformPaths[i].startsWith(pathStr) && this.findItem(skeletonBonePaths, xformPaths[i]) == -1){
+      skeletonBonePaths.push(xformPaths[i]);
+    }
+  }
+}
+
+
+
+/// Returns true if the file was successfully opened.
+function Boolean AlembicGeometryGenerator.initialized(){
+  return this.archive != null;
+}
+
+/// Loads the data from the alembic file
+/// \internal
+function AlembicGeometryGenerator.evaluate(EvalContext context, io GeometrySet geomSet){
+{
+    // Check for an absolute file path, then a relative path.
+    FilePath filePathObj(this.filePath);
+    if(!filePathObj.exists()){
+      report("File not found:" + filePath);
+      return;
+    }
+
+    report("Importing:" + filePathObj.string());
+    this.archive = AlembicArchiveReader(filePathObj.string());
+
+    String xformPaths[] = this.archive.getPathsOfType('Xform');
+    String transformNames[];
+    Xfo transforms[];
+    transformNames.resize(xformPaths.size());
+    // xformReaders.resize(xformPaths.size());
+    transforms.resize(xformPaths.size());
+
+    String skeletonBonePaths[];
+    String deformerNamesUnion[];
+
+    for(Size i=0;i<xformPaths.size();i++) {
+      // xformReaders[i] 
+      AlembicXformReader xformReader = this.archive.getXform(xformPaths[i]);
+      String name = this.getNameFromPath(xformPaths[i]);
+      transformNames[i] = name;
+      transforms[i] = xformReader.readSample(0.0);
+    }
+
+    String polymeshPaths[] = this.archive.getPathsOfType('PolyMesh');
+    this.geometries.resize(polymeshPaths.size());
+    this.bindShapeTransforms.resize(polymeshPaths.size());
+    AlembicPolyMeshReader readers[];
+    readers.resize(polymeshPaths.size());
+
+    // The bone ids referenced by each geometry.
+    Integer bonesIDs[][];
+    bonesIDs.resize(polymeshPaths.size());
+
+    for(Size i=0; i<polymeshPaths.size(); i++) {
+      String name = this.getNameFromPath(polymeshPaths[i]);
+      readers[i] = this.archive.getPolyMesh(polymeshPaths[i]);
+
+      PolygonMesh mesh = PolygonMesh();
+      readers[i].readSample(0.0, mesh);
+
+      //-----------------------------------------
+      // Get the envelope weights data
+      AlembicICompoundProperty compound = AlembicICompoundProperty(readers[i]._schema.getArbGeomParams());
+
+      Ref<SkinningAttribute> skinningAttr = mesh.getOrCreateAttribute("skinningData", SkinningAttribute);
+      String deformerNames[];
+
+      for (Integer pp=0; pp<compound.getNumProperties(); pp++)
+      {
+        AlembicPropertyHeader header = compound.getPropertyHeader(pp);
+        AlembicPropertyType pType = header.getPropertyType();
+        if (header.isCompound())
+        {
+          String compoundName = header.getName();
+          if(compoundName == "Envelope_Deformers" || compoundName == "_EnvelopeDeformers" )
+          {
+            AlembicICompoundProperty envDeformersCpmd = AlembicICompoundProperty(compound, compoundName);
+            deformerNames = AlembicIWStringArrayProperty(envDeformersCpmd , "vals").get();
+          }
+        }
+      }
+      // The Skeleton stores the union of all bones used to deform all geometries
+      // that make up this character.
+      // Merge the envelope deformers into the skeleton bone paths,
+      // while also traversing up the hierarchy and collecting the entire
+      // hierarchy. This is because the skeleton must represent the entire
+      // transformation from the scene root to each deformer in the skeleton. 
+      bonesIDs[i].resize(deformerNames.size);
+      for(Integer j=0; j<deformerNames.size; j++)
+      {
+        for (Integer k=0; k<transformNames.size; k++)
+          if (/*"deformers:"+*/transformNames[k] == deformerNames[j])
+          {
+            // Store the index of the deformer in the transformNames array
+            bonesIDs[i][j] = k;
+            this.collectHierarchy(xformPaths[k], skeletonBonePaths);
+            break;
+          }
+      }
+
+      // Gather the list of all deformers. this list will be the sub-set of the 
+      // Skeleton that is used to generate the skining matricies. 
+      this.mergeSet(deformerNamesUnion, deformerNames);
+
+      this.geometries[i] = mesh;
+      this.bindShapeTransforms[i] = Mat44();
+    }
+
+    // ensure any manually included bones are part of the skeleton.
+    for (Integer i=0; i<xformPaths.size; i++){
+      String name = this.getNameFromPath(xformPaths[i]);
+      for(Integer j=0; j<this.includedBones.size; j++){
+        if(name == this.includedBones[j]){
+          if(this.findItem(skeletonBonePaths, xformPaths[j]) == -1){
+            skeletonBonePaths.push(xformPaths[j]);
+          }
+        }
+      }
+    }
+    for (Integer i=0; i<this.includedSubtrees.size; i++){
+      this.addChildrenToSkeleton(this.includedSubtrees[i], xformPaths, skeletonBonePaths);
+    }
+
+
+    //-----------------------------------------
+    // Construct the skeleton
+    this.buildSkeleton(skeletonBonePaths, deformerNamesUnion);
+
+
+    //-----------------------------------------
+    // Load the envelope weights and remap the bone indices to the skeleton hierarchy.
+
+    for(Size i=0; i<polymeshPaths.size(); i++) {
+      PolygonMesh mesh = this.geometries[i];
+
+      //-----------------------------------------
+      // Get the envelope weights data
+
+      Float32 envelopeWeights[];
+      UInt32 subArrayIndices[];
+      SInt32 envelopeDeformerIndices[];
+
+      AlembicICompoundProperty compound = AlembicICompoundProperty(readers[i]._schema.getArbGeomParams());
+      for (Integer pp=0; pp<compound.getNumProperties(); pp++)
+      {
+        AlembicPropertyHeader header = compound.getPropertyHeader(pp);
+        AlembicPropertyType pType = header.getPropertyType();
+        if (header.isCompound())
+        {
+          String compoundName = header.getName();
+          if (compoundName == "Envelope_Weights" || compoundName == "_EnvelopeWeights")
+          {
+            AlembicICompoundProperty envWeightsCpmd = AlembicICompoundProperty(compound, compoundName);
+            envelopeWeights = AlembicIFloat32ArrayProperty(envWeightsCpmd , "vals").get();
+            subArrayIndices = AlembicIUInt32ArrayProperty(envWeightsCpmd , "subArrayIndices").get();
+            // report("weights"+envelopeWeights);
+            // report("id chuncks :" +subArrayIndices);
+            // nbPoints = subArrayIndices.size / 2;
+            // nbBones = envelopeWeights.size / (subArrayIndices.size / 2);
+            // report("nbPoints : "+nbPoints);
+            // report("nbBones : "+nbBones);
+          }
+          if (compoundName == "EnvelopeDeformerIndices" || compoundName == "_EnvelopeDeformerIndices")
+          {
+            AlembicICompoundProperty envDefIdCpmd = AlembicICompoundProperty(compound, compoundName);
+            envelopeDeformerIndices = AlembicISInt32ArrayProperty(envDefIdCpmd , "vals").get();
+            // report("bone ids"+ envelopeDeformerIndices);
+          }
+        }
+      }
+
+      if(envelopeWeights.size == 0)
+        continue;
+
+      UInt32 nbBones = bonesIDs[i].size;
+      UInt32 nbPoints = subArrayIndices.size / 2;
+      Integer boneMapping[];
+      boneMapping.resize(nbBones);
+      for(Integer j=0; j<bonesIDs[i].size; j++) {
+        for(Integer k=0; k<skeletonBonePaths.size(); k++) {
+          String name = this.getNameFromPath(xformPaths[bonesIDs[i][j]]);
+          if(name == deformerNamesUnion[k]){
+            boneMapping[j] = k;
+            break;
+          }
+        }
+      }
+
+      Ref<SkinningAttribute> skinningAttr = mesh.getOrCreateAttribute("skinningData", SkinningAttribute);
+      for(Integer pnt = 0; pnt < nbPoints; ++pnt ) {
+        UInt32 startIndex = subArrayIndices[pnt * 2];
+        UInt32 endIndex = subArrayIndices[(pnt * 2) + 1];
+        UInt32 deformerCount = endIndex - startIndex;
+
+        LocalL16UInt32Array indices;
+        LocalL16ScalarArray weights;
+        indices.resize(deformerCount);
+        weights.resize(deformerCount);
+
+        // Some files have non-normalized skinning weights, and so here we
+        // normalize the data so that the geometry will be deformed correctly.
+        Scalar weightsSum = 0.0;
+        for(Integer j = 0; j < deformerCount; ++j ) {
+          weightsSum += envelopeWeights[startIndex + j];
+        }
+        if(weightsSum > DIVIDEPRECISION){
+          for(Integer j = 0; j < deformerCount; ++j ) {
+            indices.set(j, boneMapping[ envelopeDeformerIndices[startIndex + j] ]);
+            weights.set(j, envelopeWeights[startIndex + j] / weightsSum);
+          }
+          mesh.setPointAttribute(pnt, skinningAttr, indices, weights);
+        }
+      }
+    }
+  }
+}
+
+
+
+/// Generates the skeleton from the Fbx file
+/// \internal
+function AlembicGeometryGenerator.buildSkeleton!(String skeletonBonePaths[], String deformerNamesUnion[]) {
+
+  //////////////////////////////////
+  // Generate the final skeleton
+  Bone bones[];
+  Boolean visibleBones[];
+
+  visibleBones.resize(skeletonBonePaths.size);
+  bones.resize(skeletonBonePaths.size);
+
+  for(Index i=0;i<skeletonBonePaths.size();i++) {
+    String name = this.getNameFromPath(skeletonBonePaths[i]);\
+
+    Bone bone;
+    bone.name = name;
+
+    // report("bone.name:" + bone.name);
+
+    bone.length = 0.0;
+    bone.radius = 0.0;
+
+    // Find bones that are either manually added, or are skinning deformers. 
+    // These bones will be drawn with the skeleton.
+    visibleBones[i] = false;
+    if(this.findItemByName(deformerNamesUnion, skeletonBonePaths[i]) != -1){
+      visibleBones[i] = true;
+      // Only deformers are used when computing the skinning matricies. 
+      bone.setFlag(BONEFLAG_DEFORMER);
+    }
+    if(!visibleBones[i]){
+      // check if this bone was manually added to the skeleton.
+      // If so, ensure it is visible. 
+      for(Index j=0; j<this.includedBones.size(); j++) {
+        if(bone.name == this.includedBones[j]){
+          visibleBones[i] = true;
+          break;
+        }
+      }
+    }
+    String parentPath = this.getParentPath(skeletonBonePaths[i]);
+    bone.parentIndex = this.findItem(skeletonBonePaths, parentPath);
+
+    if(bone.parentIndex >= i){
+      // Note: this should never happen as we always add parents before children
+      setError("ERROR Bone hierarchy is not sorted");
+      return;
+    }
+
+    AlembicXformReader xformReader = this.archive.getXform(skeletonBonePaths[i]);
+
+    Xfo referenceLocalPose = xformReader.readSample(0.0);
+    // Compute the global pose values for the skeleton based on the local pose.
+    if(bone.parentIndex == -1){
+      bone.referencePose = referenceLocalPose;
+    }
+    else{
+      bone.referencePose = bones[bone.parentIndex].referencePose * referenceLocalPose;
+    }
+
+    bones[i] = bone;
+  }
+
+  //////////////////////////////////////////////////////
+  // Skeleton processing
+  // Now calculate the bone length by checking the offsets of the bones children.
+  for(Index i=0; i<bones.size(); i++) {
+    Size children[];
+    for(Size j=i+1; j<bones.size(); j++) {
+      if(bones[j].parentIndex == i){
+        children.push(j);
+      }
+    }
+    if(children.size() > 0){
+      Scalar boneLength = 0.0;
+      Integer numChildrenContributingToBoneLength = 0;
+      Boolean chainBone = false;
+      Integer childChainBoneIndex = -1;
+      for(Integer j=0;j<children.size();j++) {
+        // We compute the bones lenght, by looking at all children,a nd seeing if they are offset
+        // along the bones vector (X axis). We then take the furtherest child's distance as the bones length.
+        // Compute the local pose values for the skeleton based on the global pose.
+        Xfo referenceLocalPose;
+        if(bones[children[j]].parentIndex == -1){
+          referenceLocalPose = bones[children[j]].referencePose;
+        }else{
+          referenceLocalPose = bones[bones[children[j]].parentIndex].referencePose.inverse() * bones[children[j]].referencePose;
+        }
+        Vec3 childOffset = referenceLocalPose.tr;
+        Scalar boneVecProjectionLength = childOffset.x;
+        childOffset.x = 0.0;
+        // Check if the chld bone is aligned with the x axis of this bone.
+        if(chainBone || (childOffset.length() < (abs(boneVecProjectionLength) * 0.05))){
+          if(!chainBone || abs(boneVecProjectionLength) > boneLength){
+            boneLength = boneVecProjectionLength;
+            childChainBoneIndex = j;
+          }
+          chainBone = true;
+        }
+        else{
+          boneLength += boneVecProjectionLength;
+          numChildrenContributingToBoneLength++;
+        }
+      }
+      if(chainBone){
+        // We are a chain bone, and our length is
+        // the distance to the next joint in the chain. 
+        bones[i].length = boneLength;
+        // report(bones[i].name + ":" + bones[i].length + " > " + bones[children[childChainBoneIndex]].name);
+      }
+      else if(numChildrenContributingToBoneLength > 0){
+        // Or this bone has a collection of children bones,
+        // and its length is the average distance to children in the +X direction
+        boneLength /= Scalar(numChildrenContributingToBoneLength);
+        bones[i].length = boneLength;
+      }
+    }
+    else{
+      if(bones[i].parentIndex > 0){
+        bones[i].length = bones[bones[i].parentIndex].length * 0.75;
+
+        // Clamp bones from extending below the level of the floor.
+        Vec3 bonePos = bones[i].referencePose.tr;
+        Vec3 boneVec = bones[i].referencePose.ori.getXaxis();
+        if(bonePos.y > 0.0 && boneVec.y < 0.0 && (bonePos + (boneVec * bones[i].length)).y < 0.0){
+          bones[i].length = (1.0/boneVec.dot(Vec3(0.0, -1.0, 0.0))) * bonePos.y;
+        }
+      }
+    }
+  }
+  // To compute the bone radius, we find the longest bone in the skeleton, and 
+  // require its length to compute a good radius for the bones. 
+  Scalar maxBoneLength = 0.0;
+  Scalar minBoneLength = 99999999.0;
+  for(Index i=0; i<bones.size(); i++) {
+    if(abs(bones[i].length) > maxBoneLength)
+      maxBoneLength = abs(bones[i].length);
+    if(abs(bones[i].length) > 0.0 && abs(bones[i].length) < minBoneLength)
+      minBoneLength = abs(bones[i].length);
+  }
+  Scalar shortBoneLength = Math_linearInterpolate(minBoneLength, maxBoneLength, 0.1);
+  for(Index i=0; i<bones.size(); i++) {
+    if(bones[i].length == 0.0 && visibleBones[i]){
+      // Assign a length skinning bones
+      if(bones[i].parentIndex > 0 && bones[bones[i].parentIndex].length < 0.0){
+        bones[i].length = -shortBoneLength;
+      }
+      else{
+        bones[i].length = shortBoneLength;
+      }
+    }
+    if(bones[i].length != 0.0){
+      // the bones radius is based on its length vs the max bone length. 
+      // A bones raduis is proportional to its length, but shorter bones are fatter, 
+      // and longer bones are skinnier. 
+      Scalar boneLengthRatio = abs(bones[i].length) / maxBoneLength;
+      bones[i].radius = abs(bones[i].length) * Math_linearInterpolate(0.2, 0.05, boneLengthRatio);
+    }
+  }
+
+  ///////////////////////////////////////
+  // Color the skeleton
+  // We want to color the bones by the chain they are part of. 
+  // This is to make it easy to identify where chains are broken,
+  // and how deep in the chain a bone is. 
+  // The bone colors are a gradient from the root of the chain, to
+  // the deepest bone in the chain. Short chains have more steeper gradients.
+  // Compute the root bone colors
+  Index cid = 0;
+  Integer chainIds[];
+  Integer boneDepths[];
+  Integer chainDepths[Integer];
+  boneDepths.resize(bones.size());
+  chainIds.resize(bones.size());
+
+  Color chainColors[Integer];
+
+  for(Index i=0; i<bones.size(); i++) {
+    // Find bones that are either root bones, 
+    // or whose parents is not in the skinning hierarchy.
+    if(this.chainColors.has(bones[i].name)){
+      bones[i].color = this.chainColors[bones[i].name];
+      cid++;
+      chainIds[i] = i; 
+      boneDepths[i] = 0;
+
+      chainColors[i] = this.chainColors[bones[i].name];
+    }
+    else{
+      Integer parentBoneIndex = bones[i].parentIndex;
+      while(parentBoneIndex != -1 && !chainColors.has(parentBoneIndex))
+        parentBoneIndex = bones[parentBoneIndex].parentIndex;
+      if(chainColors.has(parentBoneIndex))
+        bones[i].color = bones[parentBoneIndex].color;
+    }
+  }
+
+
+  for(suffix, color in this.suffixColors){
+    for(Index i=0; i<bones.size(); i++) {
+      if(bones[i].name.endsWith(suffix)){
+        bones[i].color = color;
+      }
+    }
+  }
+  
+  this.setSkeleton(Skeleton(this.getName(), bones));
+}

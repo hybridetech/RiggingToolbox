@@ -29,13 +29,13 @@ operator ComputeTangentsDeformer_deformGeometries<<<index>>>(
   io GeometrySet geomSet,
   UInt32 polyMeshIndices[]
 ){
-	PolygonMesh mesh = geometries[polyMeshIndices[index]];
-	mesh.recomputeTangentsIfRequired( );
-	return true;
+	PolygonMesh mesh = geomSet.get(index);
+	if(mesh)
+		mesh.recomputeTangentsIfRequired();
 }
 
 function ComputeTangentsDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
-  ComputeTangentsDeformer_deformGeometries<<<this.polyMeshIndices.size()>>>(geometries, this.polyMeshIndices);
+  ComputeTangentsDeformer_deformGeometries<<<geomSet.size()>>>(geomSet, this.polyMeshIndices);
 }
 
 

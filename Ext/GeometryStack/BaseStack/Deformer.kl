@@ -14,9 +14,6 @@ interface Deformer {
 	// returns the list of attributes modifed by the deformer. 
 	String[] getModifiedAttributes();
 
-
-	/// Enables the deformer to bind itsself to the geometry, generating any bind data used during evaluation.
-	bind!(GeometrySet geomSet);
 	evaluate(EvalContext context, io GeometrySet geomSet);
 
 	String saveJSON();
@@ -35,10 +32,6 @@ function String[] BaseDeformer.getRequiredAttributes(){
 function String[] BaseDeformer.getModifiedAttributes(){
 	String result[];
 	return result;
-}
-
-function BaseDeformer.bind!(GeometrySet geomSet){
-
 }
 
 

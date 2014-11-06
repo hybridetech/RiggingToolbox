@@ -118,8 +118,10 @@ function GeometrySet GeometryStack.evaluate!(EvalContext context) {
 						if(!attributes.has(requiredAttributes[j]))
 							missingAttributes.push(requiredAttributes[j]);
 					}
-					if(missingAttributes.size > 0)
-						setError('Geometry missing required attributes:' + missingAttributes);
+					if(missingAttributes.size > 0){
+						setError("Cannot evaluate '" + this.geomOperators[i].type() + "'. Geometry missing required attributes:" + missingAttributes);
+						return this.geomSet;
+					}
 				}
 			}
 

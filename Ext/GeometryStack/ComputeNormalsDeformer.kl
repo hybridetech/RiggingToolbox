@@ -23,11 +23,6 @@ function String[] ComputeNormalsDeformer.getModifiedAttributes(){
 	return result;
 }
 
-function ComputeNormalsDeformer.bind!(GeometrySet geomSet){
-
-}
-
-
 /// Per-geometry computation of the push. 
 /// \internal
 operator ComputeNormalsDeformer_deformGeometries<<<index>>>(
@@ -35,8 +30,8 @@ operator ComputeNormalsDeformer_deformGeometries<<<index>>>(
   Scalar hardAngleRadians
 ){
 	PolygonMesh mesh = geomSet.get(index);
-	mesh.recomputePointNormalsIfRequired( hardAngleRadians );
-	return true;
+	if(mesh)
+		mesh.recomputePointNormalsIfRequired( hardAngleRadians );
 }
 
 function ComputeNormalsDeformer.evaluate(EvalContext context, io GeometrySet geomSet){

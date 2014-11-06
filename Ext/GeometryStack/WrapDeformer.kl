@@ -16,10 +16,6 @@ function WrapDeformer(){
   this.threshold = 0.001;
 }
 
-function WrapDeformer.bind!(GeometrySet geomSet){
-
-}
-
 
 operator computeBinding<<<index>>>(
   Vec3 refpositions[],

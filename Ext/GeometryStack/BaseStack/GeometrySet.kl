@@ -8,7 +8,8 @@ object GeometrySet {
   Geometry geometries[];
 
   ///Container for holding various user data, such as the Skeleton.
-  ThreadsafeMetaDataContainer metaData;
+  Object metaData[String];
+  UInt32 version;
 };
 
 /// returns the size of the contained value array
@@ -29,4 +30,25 @@ inline Geometry GeometrySet.get(Index index) {
 /// sets an element the contained value array by index
 inline GeometrySet.set!(Index index, Geometry value) {
   this.geometries[index] = value;
+}
+
+
+/// gets a single object out of the container or null if it doesn't exist
+function Boolean ThreadsafeMetaDataContainer.hasMetaData( String name ) {
+  return this.metaData.has( name );
+}
+
+/// gets a single object out of the container or null if it doesn't exist
+function Ref<Object> ThreadsafeMetaDataContainer.getMetaData( String name ) {
+  return this.metaData.get( name, null );
+}
+
+/// sets a single object in the metadata
+function ThreadsafeMetaDataContainer.setMetaData!( String name, Object value ) {
+  this.metaData[name] = value;
+  this.version++;
+}
+/// sets a single object in the metadata
+function UInt32 ThreadsafeMetaDataContainer.getMetaDataVersion() {
+  return this.version;
 }

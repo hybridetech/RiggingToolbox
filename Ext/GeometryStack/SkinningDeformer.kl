@@ -7,6 +7,8 @@ require Geometry;
 require FabricStatistics;
 
 object SkinningDeformer : BaseDeformer {
+
+  UInt32 dataVersion;
   Mat44 invReferencePose[];
   Mat44 skinningMatrices[];
   Mat44 bindShapeTransforms[];
@@ -26,27 +28,6 @@ function String[] SkinningDeformer.getModifiedAttributes(){
   result.push('positions');
   result.push('normals');
   return result;
-}
-
-
-function SkinningDeformer.bind!(GeometrySet geomSet){
-  this.bindShapeTransforms.resize(geomSet.size);
-  for(Integer i=0; i<geomSet.size; i++){
-    BaseGeometry geometry = geomSet.get(i);
-    Ref<GeometryAttributes> attributes = geometry.getAttributes();
-    if( !attributes.has("skinningData") ){
-      setError("ERROR: Geometry does not have skinningData:" + geometry.debugName);
-      return false;
-    }
-    if(geometry.metaData.has('bindShapeTransform')){
-      GenericMat44Value bindShapeTransform = geometry.metaData.get('bindShapeTransform');
-      this.bindShapeTransforms[i] = bindShapeTransform.value;
-    }
-    if(geometry.metaData.has('referencePose')){
-      GenericMat44ArrayValue referencePose = geometry.metaData.get('referencePose');
-      this.setReferencePose(referencePose.value);
-    }
-  }
 }
 
 function SkinningDeformer.setReferencePose!(Mat44 referencePose[]){
@@ -163,6 +144,26 @@ operator deformGeometries<<<index>>>(
 }
 
 function SkinningDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
+
+  if(this.dataVersion != geomSet.getMetaDataVersion()){
+    this.bindShapeTransforms.resize(geomSet.size);
+    for(Integer i=0; i<geomSet.size; i++){
+      BaseGeometry geometry = geomSet.get(i);
+      Ref<GeometryAttributes> attributes = geometry.getAttributes();
+      if( !attributes.has("skinningData") ){
+        setError("ERROR: Geometry does not have skinningData:" + geometry.debugName);
+        return false;
+      }
+      if(geometry.metaData.has('bindShapeTransform')){
+        GenericMat44Value bindShapeTransform = geometry.metaData.get('bindShapeTransform');
+        this.bindShapeTransforms[i] = bindShapeTransform.value;
+      }
+    }
+    if(geomSet.hasMetaData('referencePose')){
+      GenericMat44ArrayValue referencePose = geomSet.getMetaData('referencePose');
+      this.setReferencePose(referencePose.value);
+    }
+  }
 
   Mat44 skinningPosAndNormMatrices[];
   skinningPosAndNormMatrices.resize( this.skinningMatrices.size()*2 );

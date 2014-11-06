@@ -19,6 +19,8 @@
     "GeometryStack/BaseStack/GeometryStack.kl",
     "GeometryStack/BaseStack/PolygonMeshDeformer.kl",
     "GeometryStack/PolygonMeshSphereGenerator.kl",
-    "GeometryStack/PushDeformer.kl"
+    "GeometryStack/PushDeformer.kl",
+    "GeometryStack/ComputeNormalsDeformer.kl",
+    "GeometryStack/ComputeTangentsDeformer.kl"
   ]
 }
