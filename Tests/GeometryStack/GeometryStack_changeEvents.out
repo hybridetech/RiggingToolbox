@@ -1,9 +1,5 @@
 this.geomOperators[i].evaluate:PolygonMeshSphereGenerator
-PolygonMeshSphereGenerator.evaluate:{host:"",graph:"",time:+0.0,currentFilePath:"",_dirtyInputs:{},_userData:{}}
-GeometryCache.init
 this.geomOperators[i].evaluate:PushDeformer
-PushDeformer.evaluate
-GeometryAttributeCache.init
 NumGeometries:1
 Mesh: pointCount: 12 polygonCount: 15 nbAttributeVectors: 24
   Points (adjacent polygons as 'polygon.neighborPolygonIndex', 
@@ -74,13 +70,8 @@ Mesh: pointCount: 12 polygonCount: 15 nbAttributeVectors: 24
     13: 3 points: 9.0, 10.1, 11.4
     14: 3 points: 10.0, 6.0, 11.0
 
- GeometryStack.notify:changed:
 this.geomOperators[i].evaluate:PolygonMeshSphereGenerator
-PolygonMeshSphereGenerator.evaluate:{host:"",graph:"",time:+0.0,currentFilePath:"",_dirtyInputs:{},_userData:{}}
-GeometryCache.init
 this.geomOperators[i].evaluate:PushDeformer
-PushDeformer.evaluate
-GeometryAttributeCache.init
 NumGeometries:1
 Mesh: pointCount: 12 polygonCount: 15 nbAttributeVectors: 24
   Points (adjacent polygons as 'polygon.neighborPolygonIndex', 
@@ -151,3 +142,26 @@ Mesh: pointCount: 12 polygonCount: 15 nbAttributeVectors: 24
     13: 3 points: 9.0, 10.1, 11.4
     14: 3 points: 10.0, 6.0, 11.0
 
+function Geometry[] Ref<GeometryStack>.evaluate!(EvalContext)
+--function Ref<PolygonMeshSphereGenerator>#evaluate?(EvalContext, io Geometry[])
+--function Ref<GeometryCache>#init!(Geometry[])
+--function Ref<PushDeformer>#evaluate?(EvalContext, io Geometry[])
+--function Ref<GeometryAttributeCache>#init!(Geometry[])
+function Ref<GeometryStack>#notify!(Notifier, String, String)
+function Geometry[] Ref<GeometryStack>.evaluate!(EvalContext)
+--function Ref<PolygonMeshSphereGenerator>#evaluate?(EvalContext, io Geometry[])
+--function Ref<GeometryCache>#init!(Geometry[])
+--function Ref<PushDeformer>#evaluate?(EvalContext, io Geometry[])
+--function Ref<GeometryAttributeCache>#init!(Geometry[])
+
+{level:0,frame:0,label:"function Geometry[] Ref<GeometryStack>.evaluate!(EvalContext)",startTime:+1.395857341737489e-5,duration:+2.401695720342444e-3,sourceName:"",coreIndex:0}
+{level:1,frame:0,label:"function Ref<PolygonMeshSphereGenerator>#evaluate?(EvalContext, io Geometry[])",startTime:+1.178267814937233e-4,duration:+2.085575087066601e-4,sourceName:"",coreIndex:0}
+{level:1,frame:0,label:"function Ref<GeometryCache>#init!(Geometry[])",startTime:+3.284370215852916e-4,duration:+2.955933194267624e-5,sourceName:"",coreIndex:0}
+{level:1,frame:0,label:"function Ref<PushDeformer>#evaluate?(EvalContext, io Geometry[])",startTime:+3.727760194993059e-4,duration:+2.027688062012194e-3,sourceName:"",coreIndex:0}
+{level:1,frame:0,label:"function Ref<GeometryAttributeCache>#init!(Geometry[])",startTime:+2.402516812896408e-3,duration:+1.231638830944843e-5,sourceName:"",coreIndex:0}
+{level:0,frame:0,label:"function Ref<GeometryStack>#notify!(Notifier, String, String)",startTime:+2.628317265236296e-3,duration:+3.284370215852916e-6,sourceName:"",coreIndex:0}
+{level:0,frame:0,label:"function Geometry[] Ref<GeometryStack>.evaluate!(EvalContext)",startTime:+2.632422728006112e-3,duration:+2.270320911708328e-4,sourceName:"",coreIndex:0}
+{level:1,frame:0,label:"function Ref<PolygonMeshSphereGenerator>#evaluate?(EvalContext, io Geometry[])",startTime:+2.638991468437817e-3,duration:+1.59702501745848e-4,sourceName:"",coreIndex:0}
+{level:1,frame:0,label:"function Ref<GeometryCache>#init!(Geometry[])",startTime:+2.79992560901461e-3,duration:+2.83276931117314e-5,sourceName:"",coreIndex:0}
+{level:1,frame:0,label:"function Ref<PushDeformer>#evaluate?(EvalContext, io Geometry[])",startTime:+2.838106412773901e-3,duration:+1.272693458643005e-5,sourceName:"",coreIndex:0}
+{level:1,frame:0,label:"function Ref<GeometryAttributeCache>#init!(Geometry[])",startTime:+2.851654439914294e-3,duration:+0.697928670868744e-5,sourceName:"",coreIndex:0}

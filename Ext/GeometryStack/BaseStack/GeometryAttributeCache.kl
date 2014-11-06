@@ -44,7 +44,7 @@ function GeometryAttributeCache.setCachedAttributeNames!(String cachedAttributes
 function GeometryAttributeCache.init!(Geometry geometries[]) {
   if(this.disabled)
     return;
-  report("GeometryAttributeCache.init");
+  AutoProfilingEvent p(FUNC);
   this.cachedAttributes.resize(geometries.size);
   this.attributeVersions.resize(geometries.size);
   for(Integer i=0; i<geometries.size; i++){
@@ -70,7 +70,7 @@ function GeometryAttributeCache.init!(Geometry geometries[]) {
 function GeometryAttributeCache.restore(io Geometry geometries[]){
   if(this.disabled)
     return;
-  report("GeometryAttributeCache.restore");
+  AutoProfilingEvent p(FUNC);
   for(Integer i=0; i<geometries.size; i++){
     Ref<GeometryAttributes> attributes = geometries[i].getAttributes();
     for(Integer j=0; j<this.cachedAttributesNames.size; j++){

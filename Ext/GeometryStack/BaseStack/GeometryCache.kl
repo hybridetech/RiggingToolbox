@@ -4,6 +4,7 @@
 
 require Math;
 require Geometry;
+require FabricStatistics;
 
 
 object GeometryCache : CachePoint {
@@ -37,7 +38,7 @@ function Boolean GeometryCache.isValid() {
 function GeometryCache.init!(Geometry geometries[]) {
   if(this.disabled)
     return;
-  report("GeometryCache.init");
+  AutoProfilingEvent p(FUNC);
   this.cachedGeometries.resize(geometries.size);
   this.topologyVersions.resize(geometries.size);
   for(Integer i=0; i<geometries.size; i++){
@@ -51,7 +52,7 @@ function GeometryCache.init!(Geometry geometries[]) {
 function GeometryCache.restore(io Geometry geometries[]){
   if(this.disabled)
     return;
-  report("GeometryCache.restore:" + this.cachedGeometries.size);
+  AutoProfilingEvent p(FUNC);
   geometries.resize(this.cachedGeometries.size);
   for(Integer i=0; i<geometries.size; i++){
     copyFrom(geometries[i], this.cachedGeometries[i]);

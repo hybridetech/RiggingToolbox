@@ -4,6 +4,7 @@
 
 require Math;
 require Geometry;
+require FabricStatistics;
 
 
 object GeometryStack : Listener {
@@ -75,7 +76,7 @@ function GeometryStack.enableCachePoint!(UInt32 index) {
 }
 
 function GeometryStack.notify!(Notifier notifier, String type, String data) {
-	report(" GeometryStack.notify:" + type + ":" + data);
+	AutoProfilingEvent p(FUNC);
 	switch(type){
 	case 'changed':
 		for(Integer i=0; i<this.geomOperators.size; i++){
@@ -99,6 +100,8 @@ function GeometryStack.notify!(Notifier notifier, String type, String data) {
 //                                  |
 //             [ LoadAlembic, WrapDeformer ] ->
 function Geometry[] GeometryStack.evaluate!(EvalContext context) {
+  	AutoProfilingEvent p(FUNC);
+
 	this.dirtyPoint = 0;// force evlauation all the time.
 	if(this.dirtyPoint < this.geomOperators.size){
 		for(Integer i=this.dirtyPoint; i<this.geomOperators.size; i++){

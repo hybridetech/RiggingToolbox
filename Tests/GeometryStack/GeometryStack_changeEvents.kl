@@ -2,6 +2,8 @@
 require RiggingToolbox;
 
 operator entry(){
+
+  StartFabricProfiling();
    	
    	GeometryStack stack();
    	PolygonMeshSphereGenerator sphereGenerator(2.0, 1, true, true);
@@ -29,5 +31,13 @@ operator entry(){
 	        report(geometries[i].getDesc(true, true));
 	    }
 	}
+	
+  StopFabricProfiling();
+
+  report( GetEvalPathReport() );
+
+  ProfilingEvent events[](GetProfilingEvents());
+  for(Integer i=0; i<events.size; i++)
+    report( events[i] );
 }
 

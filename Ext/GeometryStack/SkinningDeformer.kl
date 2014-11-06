@@ -4,6 +4,7 @@
 
 require Math;
 require Geometry;
+require FabricStatistics;
 
 object SkinningDeformer : BaseDeformer {
   Mat44 invReferencePose[];

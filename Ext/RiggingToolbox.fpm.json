@@ -6,6 +6,7 @@
     "Math/pivotDistanceLimit.kl",
     "Kinematics/solveNCFIK.kl",
     "GeometryStack/BaseStack/GeometryHelperFunctions.kl",
+    "GeometryStack/BaseStack/StatisticsHelperFunctions.kl",
     "GeometryStack/BaseStack/Listener.kl",
     "GeometryStack/BaseStack/Notifier.kl",
     "GeometryStack/BaseStack/GeometryOperator.kl",

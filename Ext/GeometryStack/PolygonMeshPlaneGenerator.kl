@@ -4,6 +4,7 @@
 
 require Math;
 require Geometry;
+require FabricStatistics;
 
 object PolygonMeshPlaneGenerator : BaseGenerator {
   Scalar length;

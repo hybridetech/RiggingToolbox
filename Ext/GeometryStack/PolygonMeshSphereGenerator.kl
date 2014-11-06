@@ -4,6 +4,7 @@
 
 require Math;
 require Geometry;
+require FabricStatistics;
 
 object PolygonMeshSphereGenerator : BaseGenerator {
   Scalar radius;
@@ -44,7 +45,8 @@ function Boolean PolygonMeshSphereGenerator.cacheResults(){
 }
 
 function PolygonMeshSphereGenerator.evaluate(EvalContext context, io Geometry geometries[]){
-  report("PolygonMeshSphereGenerator.evaluate:" + context);
+  AutoProfilingEvent p(FUNC);
+
   geometries.resize(1);
   PolygonMesh mesh();
   mesh.debugName = "Sphere";

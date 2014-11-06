@@ -69,7 +69,7 @@ operator PushDeformer_deformGeometries<<<index>>>(
 }
 
 function PushDeformer.evaluate(EvalContext context, io Geometry geometries[]){
-	report("PushDeformer.evaluate");
+  AutoProfilingEvent p(FUNC);
   PushDeformer_deformGeometries<<<geometries.size()>>>(geometries, this.push);
 }
 

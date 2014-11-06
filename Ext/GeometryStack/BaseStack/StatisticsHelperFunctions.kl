@@ -1,0 +1,37 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+require FabricStatistics;
+
+
+/// Returns all profiling events as a single String, providing a simple way to dump the results in the console from KL. See :ref:`fabricstatisticsprofiling` for an example of usage.
+function String GetEvalPathReport() {
+  ProfilingEvent events[] = GetProfilingEvents();
+
+  //Check if frames differ
+  Boolean differentFrames;
+  for( Size i = 1; i < events.size(); ++i ) {
+    if( events[i].frame != events[i-1].frame ) {
+      differentFrames = true;
+      break;
+    }
+  }
+
+  String result;
+  for( Size i = 0; i < events.size(); ++i ) {
+    if( differentFrames && (i == 0 || events[i].frame != events[i-1].frame ) )
+      result += 'Frame '+events[i].frame+'\n';
+
+    if( differentFrames )
+      result += '  ';
+
+    for( Size j = 0; j < events[i].level; ++j )
+      result += '--';
+
+    result += events[i].label + '\n';
+  }
+  return result;
+}
