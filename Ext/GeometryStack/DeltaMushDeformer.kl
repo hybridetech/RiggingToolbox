@@ -1,0 +1,170 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Math;
+require Geometry;
+
+
+object DeltaMushDeformer : BaseDeformer {
+  Vec3 deltas[][];
+
+  Boolean bound;
+  UInt32 boundVersion;
+};
+
+
+function DeltaMushDeformer(){
+}
+
+function Mat44 deltaMushDeformer_buildRefFrame(Vec3 pos, Vec3 nrm, Vec3 tgt){
+  return Mat44();
+}
+
+
+
+struct SmoothPosMRInput {
+  PolygonMesh mesh;
+  Vec3 positions[];
+};
+
+operator deltaMushDeformer_smoothPos<<<index>>>(io Vec3 positions[], PolygonMesh mesh) {
+
+  //Pseudo-gaussian: center weight = 0.5, neighbor weights sum = 0.5
+  Vec3 position = positions[ index ];
+
+  LocalL16UInt32Array surroundingPoints;
+  mesh.getPointSurroundingPoints( index, false, surroundingPoints );
+  UInt32 nbNei = surroundingPoints.size();
+  if( nbNei ) {
+    Vec3 neiSum = Vec3(0,0,0);
+    for( UInt32 i = 0; i < nbNei; ++i ) {
+      UInt32 neiPt = surroundingPoints.get(i);
+      neiSum += positions[neiPt];
+    }
+    neiSum /= Scalar(nbNei);
+    mesh.setPointPosition( index, ( position + neiSum ) * 0.5 );
+  }
+}
+
+operator deltaMushDeformer_smoothPosNorm<<<index>>>(io Vec3 positions[], io Vec3 normals[], io PolygonMesh mesh) {
+  //Pseudo-gaussian: center weight = 0.5, neighbor weights sum = 0.5
+  Vec3 position = positions[ index ];
+  Vec3 normal = normals[ index ];
+
+  LocalL16UInt32Array surroundingPoints;
+  mesh.getPointSurroundingPoints( index, false, surroundingPoints );
+  UInt32 nbNei = surroundingPoints.size();
+  if( nbNei ) {
+    Vec3 neiPosSum = Vec3(0,0,0);
+    Vec3 neiNormSum = Vec3(0,0,0);
+    for( UInt32 i = 0; i < nbNei; ++i ) {
+      UInt32 neiPt = surroundingPoints.get(i);
+      neiPosSum += positions[neiPt];
+      neiNormSum += normals[neiPt];
+    }
+    neiPosSum /= Scalar(nbNei);
+    mesh.setPointPosition( index, ( position + neiPosSum ) * 0.5 );
+    normal += neiNormSum;
+    normal.setUnit();
+    mesh.setPointNormal( index, normal );
+  }
+}
+
+
+operator deltaMushDeformer_computeBinding<<<index>>>(
+  io PolygonMesh mesh,
+  Vec3 initialPositions[]
+  io Vec3 deltas[]
+){
+  Vec3 newPos = mesh.positionsAttribute.values[index];
+  Vec3 newNormal = mesh.normalsAttribute.values[index];
+  Vec4 newTangent = mesh.tangentsAttribute.values[index];
+
+  // Build a reference frame. 
+  Mat44 mat44 = deltaMushDeformer_buildRefFrame(newPos, newNormal, newTangent);
+
+  // Compute the delta between the relaxed frame and the original position.
+  deltas[index] = mat44.inverse() * initialPositions[index];
+}
+
+operator deltaMushDeformer_applyDeltas<<<index>>>(
+  io PolygonMesh mesh,
+  Vec3 deltas[]
+){
+  Vec3 newPos = mesh.positionsAttribute.values[index];
+  Vec3 newNormal = mesh.normalsAttribute.values[index];
+  Vec4 newTangent = mesh.tangentsAttribute.values[index];
+
+  // Build a reference frame. 
+  Mat44 mat44 = deltaMushDeformer_buildRefFrame(newPos, newNormal, newTangent);
+
+  mesh.setPointPosition( index, mat44 * deltas[index] );
+}
+
+
+operator deltaMushDeformer_deformGeometries<<<index>>>(
+  io GeometrySet geomSet,
+  io Vec3 deltas[][],
+  UInt32 iterations,
+  io Boolean bound
+){
+  PolygonMesh mesh = geomSet.get(0);
+  if(!mesh)
+    return;
+  if(!bound){
+    // Cache the initial positions of the points before relaxing.
+    Vec3 initialPositions = mesh.positionsAttribute.values.clone();
+
+    for(UInt32 i=0; i<iterations; i++){
+      // relax the mesh, causing it to lose volume. 
+      deltaMushDeformer_smoothPos<<<mesh.pointCount()>>>(mesh.positionsAttribute.values, mesh);
+    }
+    // compute the deltas between the relaxed mesh, and the orrignal vertex positions.
+    deltaMushDeformer_computeBinding<<<positionsAttribute.size()>>>(
+      mesh,
+      initialPositions,
+      deltas[index]
+    );
+    bound = true;
+  }
+  else{
+    for(UInt32 i=0; i<iterations; i++){
+      // relax the mesh, causing it to lose volume. 
+      deltaMushDeformer_smoothPos<<<mesh.pointCount()>>>(mesh.positionsAttribute.values, mesh);
+    }
+  }
+
+  // Re-apply the deltas to re-inflate the mesh.
+  // (Even when binding, the mesh is deflated, so it must be re-inflated)
+  deltaMushDeformer_applyDeltas<<<positionsAttribute.size()>>>(
+    mesh,
+    deltas[index]
+  );
+  positionsAttribute.incrementVersion();
+
+}
+
+function DeltaMushDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
+  GeometrySet srcGeomSet = this.sourceGeometryStack.evaluate(context);
+
+  Ref<DeltaMushDeformer> io_this = this;
+  if(srcGeomSet.getVersion() != io_this.srcBoundVersion || geomSet.getVersion() != this.boundVersion){
+    io_this.bound = false;
+  }
+  deltaMushDeformer_deformGeometries<<<geomSet.size()>>>(geomSet, srcGeomSet, io_this.locations, io_this.deltas, io_this.bound);
+
+  if(io_this.bound){
+    io_this.srcBoundVersion = srcGeomSet.getVersion();
+    io_this.boundVersion = geomSet.getVersion();
+  }
+}
+
+
+function DeltaMushDeformer.save(){
+  
+}
+
+function DeltaMushDeformer.load(){
+  
+}
