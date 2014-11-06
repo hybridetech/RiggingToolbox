@@ -72,7 +72,7 @@ function UInt32 BlendShapesDeformer._resizeDeltasArray!( UInt32 geomIndex, UInt3
 }
 
 
-operator computeDeltas<<<index>>>(
+operator blendShapesDeformer_computeDeltas<<<index>>>(
   Vec3 refpositions[],
   Vec3 positions[],
   Scalar threshold,
@@ -86,7 +86,7 @@ operator computeDeltas<<<index>>>(
 
 function BlendShapesDeformer.addTarget(EvalContext context, Geometry targetGeometry){
 
-  computeDeltas<<<geomSet.size()>>>(geomSet, skinningPosAndNormMatrices);
+  blendShapesDeformer_computeDeltas<<<geomSet.size()>>>(geomSet, skinningPosAndNormMatrices);
 }
 
 

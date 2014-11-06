@@ -40,7 +40,7 @@ function PushDeformer.setPushDist!(Scalar push){
 
 /// The per-point operator that computes the push of the vertices. 
 /// \internal
-operator PushDeformer_pushPositionsAlongNormals<<<index>>>(
+operator pushDeformer_pushPositionsAlongNormals<<<index>>>(
   io Vec3 positions[],
   Vec3 normals[],
   Scalar push
@@ -50,7 +50,7 @@ operator PushDeformer_pushPositionsAlongNormals<<<index>>>(
 
 /// Per-geometry computation of the push. 
 /// \internal
-operator PushDeformer_deformGeometries<<<index>>>(
+operator pushDeformer_deformGeometries<<<index>>>(
   io GeometrySet geomSet,
   Scalar push
 ){
@@ -58,9 +58,9 @@ operator PushDeformer_deformGeometries<<<index>>>(
 	Vec3Attribute positionsAttribute = attributes.positionsAttribute;
 	Vec3Attribute normalsAttribute = attributes.normalsAttribute;
 	if(!positionsAttribute || !normalsAttribute){
-		setError("Error in PushDeformer_deformGeometries. Missing attributes.");
+		setError("Error in pushDeformer_deformGeometries. Missing attributes.");
 	}
-	PushDeformer_pushPositionsAlongNormals<<<attributes.size()>>>(
+	pushDeformer_pushPositionsAlongNormals<<<attributes.size()>>>(
 		positionsAttribute.values,
 		normalsAttribute.values,
 		push
@@ -70,7 +70,7 @@ operator PushDeformer_deformGeometries<<<index>>>(
 
 function PushDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
   AutoProfilingEvent p(FUNC);
-  PushDeformer_deformGeometries<<<geomSet.size()>>>(geomSet, this.push);
+  pushDeformer_deformGeometries<<<geomSet.size()>>>(geomSet, this.push);
 }
 
 

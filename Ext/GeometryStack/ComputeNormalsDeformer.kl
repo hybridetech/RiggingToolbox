@@ -25,7 +25,7 @@ function String[] ComputeNormalsDeformer.getModifiedAttributes(){
 
 /// Per-geometry computation of the push. 
 /// \internal
-operator ComputeNormalsDeformer_deformGeometries<<<index>>>(
+operator computeNormalsDeformer_deformGeometries<<<index>>>(
   io GeometrySet geomSet,
   Scalar hardAngleRadians
 ){
@@ -35,7 +35,7 @@ operator ComputeNormalsDeformer_deformGeometries<<<index>>>(
 }
 
 function ComputeNormalsDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
-  ComputeNormalsDeformer_deformGeometries<<<geomSet.size()>>>(geomSet, this.hardAngleRadians);
+  computeNormalsDeformer_deformGeometries<<<geomSet.size()>>>(geomSet, this.hardAngleRadians);
 }
 
 

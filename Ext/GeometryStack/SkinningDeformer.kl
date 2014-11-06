@@ -60,7 +60,7 @@ function SkinningDeformer.setPose!(Mat44 pose[]){
 
 /// The per-point operator that computes the linear blend skinning. 
 /// \internal
-operator SkinningDeformer_skinPositions<<<index>>>(
+operator skinningDeformer_skinPositions<<<index>>>(
   io Vec3 positions[],
   SkinningAttribute skinningAttr,
   Mat44 skinningPosAndNormMatrices[]
@@ -85,7 +85,7 @@ operator SkinningDeformer_skinPositions<<<index>>>(
 
 /// The per-point operator that computes the linear blend skinning. 
 /// \internal
-operator SkinningDeformer_skinPositionsAndNormals<<<index>>>(
+operator skinningDeformer_skinPositionsAndNormals<<<index>>>(
   io Vec3 positions[],
   io Vec3 normals[],
   SkinningAttribute skinningAttr,
@@ -134,7 +134,7 @@ operator deformGeometries<<<index>>>(
   SkinningAttribute skinningAttr = attributes.getAttribute("skinningData");
 
   if(normalsAttribute == null){
-    SkinningDeformer_skinPositions<<<attributes.size()>>>(
+    skinningDeformer_skinPositions<<<attributes.size()>>>(
       positionsAttribute.values,
       skinningAttr,
       skinningPosAndNormMatrices
@@ -142,7 +142,7 @@ operator deformGeometries<<<index>>>(
     positionsAttribute.incrementVersion();
   }
   else{
-    SkinningDeformer_skinPositionsAndNormals<<<attributes.size()>>>(
+    skinningDeformer_skinPositionsAndNormals<<<attributes.size()>>>(
       positionsAttribute.values,
       normalsAttribute.values,
       skinningAttr,
