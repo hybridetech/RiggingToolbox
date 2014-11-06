@@ -3,6 +3,7 @@
  */
 
 require Alembic;
+require AlembicWrapper;
 require Characters;
 
 
@@ -99,11 +100,6 @@ function String[] AlembicIWStringArrayProperty.get() {
 }
 
 
-function String InlineTransformBase.getName() {
-  AutoLock AL(this.lock);
-  return this.getName();
-}
-
 
 /**
  
@@ -111,12 +107,10 @@ function String InlineTransformBase.getName() {
   \seealso FbxCharacter
 */
 
-object AlembicGeometryGenerator : Character {
+object AlembicGeometryGenerator : BaseGenerator {
 
   /// the file path of the alembic file. 
   String filePath;
-
-  AlembicArchiveReader archive;
 
   /// An array of joints which must be included in the skeleton
   String includedBones[];
@@ -134,19 +128,24 @@ object AlembicGeometryGenerator : Character {
   /// All joints whose names end in a specified suffix will be assigned the
   /// mapped color. The suffixColors override the chainColors.
   Color suffixColors[String];
+
+  Skeleton skeleton;
 };
 
 
 
 /// Constructor taking a file path to load the alembic file on disk
 function AlembicGeometryGenerator() {
-  this.lock = SimpleLock('AlembicGeometryGenerator');
 }
 
 /// Constructor taking a file path to load the alembic file on disk
 function AlembicGeometryGenerator(String filePath) {
-  this.lock = SimpleLock('AlembicGeometryGenerator');
-  this.load(filePath);
+  this.setFilePath(filePath);
+}
+
+/// Sets the file path of the alembic file. 
+inline  AlembicGeometryGenerator.setFilePath!(String filePath){
+  this.filePath = filePath;
 }
 
 /// Returns the file path of the alembic file. 
@@ -224,12 +223,6 @@ function AlembicGeometryGenerator.addChildrenToSkeleton(String pathStr, String x
 }
 
 
-
-/// Returns true if the file was successfully opened.
-function Boolean AlembicGeometryGenerator.initialized(){
-  return this.archive != null;
-}
-
 /// Loads the data from the alembic file
 /// \internal
 function AlembicGeometryGenerator.evaluate(EvalContext context, io GeometrySet geomSet){
@@ -237,14 +230,15 @@ function AlembicGeometryGenerator.evaluate(EvalContext context, io GeometrySet g
     // Check for an absolute file path, then a relative path.
     FilePath filePathObj(this.filePath);
     if(!filePathObj.exists()){
-      report("File not found:" + filePath);
+      report("File not found:" + this.filePath);
       return;
     }
 
     report("Importing:" + filePathObj.string());
-    this.archive = AlembicArchiveReader(filePathObj.string());
 
-    String xformPaths[] = this.archive.getPathsOfType('Xform');
+    AlembicArchiveReader archive(filePathObj.string());
+
+    String xformPaths[] = archive.getPathsOfType('Xform');
     String transformNames[];
     Xfo transforms[];
     transformNames.resize(xformPaths.size());
@@ -256,15 +250,15 @@ function AlembicGeometryGenerator.evaluate(EvalContext context, io GeometrySet g
 
     for(Size i=0;i<xformPaths.size();i++) {
       // xformReaders[i] 
-      AlembicXformReader xformReader = this.archive.getXform(xformPaths[i]);
+      AlembicXformReader xformReader = archive.getXform(xformPaths[i]);
       String name = this.getNameFromPath(xformPaths[i]);
       transformNames[i] = name;
       transforms[i] = xformReader.readSample(0.0);
     }
 
-    String polymeshPaths[] = this.archive.getPathsOfType('PolyMesh');
-    this.geometries.resize(polymeshPaths.size());
-    this.bindShapeTransforms.resize(polymeshPaths.size());
+    String polymeshPaths[] = archive.getPathsOfType('PolyMesh');
+    geomSet.resize(polymeshPaths.size());
+
     AlembicPolyMeshReader readers[];
     readers.resize(polymeshPaths.size());
 
@@ -274,7 +268,7 @@ function AlembicGeometryGenerator.evaluate(EvalContext context, io GeometrySet g
 
     for(Size i=0; i<polymeshPaths.size(); i++) {
       String name = this.getNameFromPath(polymeshPaths[i]);
-      readers[i] = this.archive.getPolyMesh(polymeshPaths[i]);
+      readers[i] = archive.getPolyMesh(polymeshPaths[i]);
 
       PolygonMesh mesh = PolygonMesh();
       readers[i].readSample(0.0, mesh);
@@ -323,8 +317,9 @@ function AlembicGeometryGenerator.evaluate(EvalContext context, io GeometrySet g
       // Skeleton that is used to generate the skining matricies. 
       this.mergeSet(deformerNamesUnion, deformerNames);
 
-      this.geometries[i] = mesh;
-      this.bindShapeTransforms[i] = Mat44();
+      GenericMat44Value bindShapeTransform(Mat44());
+      mesh.metaData.lockedSet('bindShapeTransform', bindShapeTransform);
+      geomSet.set(i, mesh);
     }
 
     // ensure any manually included bones are part of the skeleton.
@@ -345,14 +340,15 @@ function AlembicGeometryGenerator.evaluate(EvalContext context, io GeometrySet g
 
     //-----------------------------------------
     // Construct the skeleton
-    this.buildSkeleton(skeletonBonePaths, deformerNamesUnion);
+    Skeleton skeleton = this.buildSkeleton(archive, skeletonBonePaths, deformerNamesUnion);
+    geomSet.setMetaData('skeleton', skeleton);
 
 
     //-----------------------------------------
     // Load the envelope weights and remap the bone indices to the skeleton hierarchy.
 
     for(Size i=0; i<polymeshPaths.size(); i++) {
-      PolygonMesh mesh = this.geometries[i];
+      PolygonMesh mesh = geomSet.get(i);
 
       //-----------------------------------------
       // Get the envelope weights data
@@ -434,13 +430,14 @@ function AlembicGeometryGenerator.evaluate(EvalContext context, io GeometrySet g
       }
     }
   }
+
 }
 
 
 
 /// Generates the skeleton from the Fbx file
 /// \internal
-function AlembicGeometryGenerator.buildSkeleton!(String skeletonBonePaths[], String deformerNamesUnion[]) {
+function Skeleton AlembicGeometryGenerator.buildSkeleton(io AlembicArchiveReader archive, String skeletonBonePaths[], String deformerNamesUnion[]) {
 
   //////////////////////////////////
   // Generate the final skeleton
@@ -451,7 +448,7 @@ function AlembicGeometryGenerator.buildSkeleton!(String skeletonBonePaths[], Str
   bones.resize(skeletonBonePaths.size);
 
   for(Index i=0;i<skeletonBonePaths.size();i++) {
-    String name = this.getNameFromPath(skeletonBonePaths[i]);\
+    String name = this.getNameFromPath(skeletonBonePaths[i]);
 
     Bone bone;
     bone.name = name;
@@ -485,10 +482,10 @@ function AlembicGeometryGenerator.buildSkeleton!(String skeletonBonePaths[], Str
     if(bone.parentIndex >= i){
       // Note: this should never happen as we always add parents before children
       setError("ERROR Bone hierarchy is not sorted");
-      return;
+      return null;
     }
 
-    AlembicXformReader xformReader = this.archive.getXform(skeletonBonePaths[i]);
+    AlembicXformReader xformReader = archive.getXform(skeletonBonePaths[i]);
 
     Xfo referenceLocalPose = xformReader.readSample(0.0);
     // Compute the global pose values for the skeleton based on the local pose.
@@ -645,5 +642,6 @@ function AlembicGeometryGenerator.buildSkeleton!(String skeletonBonePaths[], Str
     }
   }
   
-  this.setSkeleton(Skeleton(this.getName(), bones));
+  
+  return Skeleton('this.getName()', bones);
 }

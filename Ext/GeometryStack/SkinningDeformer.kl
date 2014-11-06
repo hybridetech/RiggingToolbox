@@ -37,6 +37,15 @@ function SkinningDeformer.setReferencePose!(Mat44 referencePose[]){
   this.skinningMatrices.resize(referencePose.size);
 }
 
+function SkinningDeformer.setReferencePoseFromSkeleton!(Skeleton skeleton){
+  Size deformerIndices[] = skeleton.getDeformerIndices();
+  Mat44 referencePose[];
+  referencePose.resize(deformerIndices.size);
+  for (Integer i = 0; i < deformerIndices.size; i++) {
+    referencePose[i] = skeleton.getBone(deformerIndices[i]).referencePose.toMat44();
+  this.setReferencePose(referencePose);
+}
+
 function SkinningDeformer.setPose!(Mat44 pose[]){
   if(pose.size != this.referencePose.size){
     setError('Pose count does not match the reference pose count referencePose:' + referencePose.size + " != " + pose.size);
@@ -45,6 +54,8 @@ function SkinningDeformer.setPose!(Mat44 pose[]){
   for (Integer i = 0; i < pose.size; i++) {
     this.skinningMatrices[i] = pose[i] * this.invReferencePose[i];
   }
+  String data;
+  this.notify('changed', data);
 }
 
 /// The per-point operator that computes the linear blend skinning. 
@@ -159,9 +170,10 @@ function SkinningDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
         this.bindShapeTransforms[i] = bindShapeTransform.value;
       }
     }
-    if(geomSet.hasMetaData('referencePose')){
-      GenericMat44ArrayValue referencePose = geomSet.getMetaData('referencePose');
-      this.setReferencePose(referencePose.value);
+    if(geomSet.hasMetaData('skeleton')){
+      Skeleton skeleton = geomSet.getMetaData('skeleton');
+      if(skeleton)
+        this.setReferencePoseFromSkeleton(skeleton);
     }
   }
 
