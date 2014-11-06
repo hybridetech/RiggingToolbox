@@ -34,21 +34,21 @@ inline GeometrySet.set!(Index index, Geometry value) {
 
 
 /// gets a single object out of the container or null if it doesn't exist
-function Boolean ThreadsafeMetaDataContainer.hasMetaData( String name ) {
+function Boolean GeometrySet.hasMetaData( String name ) {
   return this.metaData.has( name );
 }
 
 /// gets a single object out of the container or null if it doesn't exist
-function Ref<Object> ThreadsafeMetaDataContainer.getMetaData( String name ) {
+function Ref<Object> GeometrySet.getMetaData( String name ) {
   return this.metaData.get( name, null );
 }
 
 /// sets a single object in the metadata
-function ThreadsafeMetaDataContainer.setMetaData!( String name, Object value ) {
+function GeometrySet.setMetaData!( String name, Object value ) {
   this.metaData[name] = value;
   this.version++;
 }
 /// sets a single object in the metadata
-function UInt32 ThreadsafeMetaDataContainer.getMetaDataVersion() {
+function UInt32 GeometrySet.getMetaDataVersion() {
   return this.version;
 }

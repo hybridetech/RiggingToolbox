@@ -26,8 +26,7 @@ function String[] ComputeTangentsDeformer.getModifiedAttributes(){
 /// Per-geometry computation of the push. 
 /// \internal
 operator ComputeTangentsDeformer_deformGeometries<<<index>>>(
-  io GeometrySet geomSet,
-  UInt32 polyMeshIndices[]
+  io GeometrySet geomSet
 ){
 	PolygonMesh mesh = geomSet.get(index);
 	if(mesh)
@@ -35,7 +34,7 @@ operator ComputeTangentsDeformer_deformGeometries<<<index>>>(
 }
 
 function ComputeTangentsDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
-  ComputeTangentsDeformer_deformGeometries<<<geomSet.size()>>>(geomSet, this.polyMeshIndices);
+  ComputeTangentsDeformer_deformGeometries<<<geomSet.size()>>>(geomSet);
 }
 
 

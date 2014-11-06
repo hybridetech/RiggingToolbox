@@ -11,6 +11,12 @@ interface GeometryOperator {
 	
 	// returns the list of attributes modifed by the deformer. 
 	String[] getModifiedAttributes();
+	
+	Boolean cacheResults();
 
 	evaluate(EvalContext context, io GeometrySet geomSet);
+
+	String saveJSON();
+
+	loadJSON!(String json);
 };

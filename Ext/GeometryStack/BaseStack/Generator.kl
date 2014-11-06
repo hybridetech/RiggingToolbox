@@ -8,7 +8,6 @@ require Geometry;
 
 interface Generator {
 	Boolean cacheResults();
-// 	evaluate(EvalContext context, io GeometrySet geomSet);
 };
 
 object BaseGenerator : Notifier, Generator, GeometryOperator {
@@ -41,4 +40,13 @@ function BaseGenerator.evaluate(EvalContext context, io GeometrySet geomSet){
 
 }
 
+function String BaseGenerator.saveJSON(){
+	String json;
 
+
+	return json;
+}
+
+function BaseGenerator.loadJSON!(String json){
+  
+}
