@@ -7,14 +7,13 @@ require Geometry;
 
 
 object WeightmapDeformer : PolygonMeshDeformer {
-	Weightmap weightmap;
+	Weightmap weightmaps[];
 	String weightmapName;
 };
 
 function String[] WeightmapDeformer.getRequiredAttributes(){
 	String result[];
 	result.push('positions');
-	result.push('normals');
 	return result;
 }
 
@@ -24,9 +23,33 @@ function String[] WeightmapDeformer.getModifiedAttributes(){
 	return result;
 }
 
+/// Return true if the generation of the geometries is expensive and the results should be cached.
+function Boolean WeightmapDeformer.cacheResults(){
+	// Teh weightmap does not need to bac cached 
+	return false;
+}
+
+
+/// Per-geometry computation of the push. 
+/// \internal
+operator WeightmapDeformer_connectWeightmaps<<<index>>>(
+  io GeometrySet geomSet,
+  io Weightmap weightmaps[],
+  String weightmapName
+){	
+	PolygonMesh mesh = geomSet.get(index);
+	if(mesh && !weightmaps[index]){
+		weightmaps[index] = Weightmap();
+		weightmaps[index].setName(weightmapName);
+		weightmaps[index].connect(mesh, Xfo());
+	}
+}
+
 
 function WeightmapDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
-  WeightmapDeformer_deformGeometries<<<geomSet.size()>>>(geomSet, this.push);
+
+  Ref<WrapDeformer> io_this = this;
+  WeightmapDeformer_connectWeightmaps<<<geomSet.size()>>>(geomSet, io_this.weightmaps, this.weightmapName);
 }
 
 
