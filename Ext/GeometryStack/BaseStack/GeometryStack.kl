@@ -125,10 +125,10 @@ function GeometrySet GeometryStack.evaluate!(EvalContext context) {
 						if(generator)
 							cachePoint = GeometryCache();
 						else
-							cachePoint = GeometryAttributeCache(op.getModifiedAttributes());
+							cachePoint = GeometryAttributeCache();
 						this.cachePoints[i] = cachePoint;
 					}
-					cachePoint.update(this.geomSet);
+					cachePoint.update(this.geomSet, op.getModifiedAttributes());
 				}
 			}
 			this.dirtyPoint++;

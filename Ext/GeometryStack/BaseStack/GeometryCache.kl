@@ -11,6 +11,7 @@ object GeometryCache : CachePoint {
   // Temp: Used in debugging and unit testing.
   Boolean disabled;
   Boolean valid;
+  String attributesNames[];
   Geometry cachedGeometries[];
   UInt32 topologyVersions[];
 };
@@ -35,10 +36,11 @@ function Boolean GeometryCache.isValid() {
   return this.valid;
 }
 
-function GeometryCache.update!(GeometrySet geomSet) {
+function GeometryCache.update!(GeometrySet geomSet, String attributesNames[]) {
   if(this.disabled)
     return;
   AutoProfilingEvent p(FUNC);
+  this.attributesNames = attributesNames;
   this.cachedGeometries.resize(geomSet.size);
   this.topologyVersions.resize(geomSet.size);
   for(Integer i=0; i<geomSet.size; i++){

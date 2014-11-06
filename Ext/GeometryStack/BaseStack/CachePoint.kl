@@ -14,7 +14,7 @@ interface CachePoint  {
 
 	invalidate!();
 	Boolean isValid();
-	update!(GeometrySet geomSet);
+	update!(GeometrySet geomSet, String attributesNames[]);
 	restore(io GeometrySet geomSet);
 
 	// Free all memory in the cache.

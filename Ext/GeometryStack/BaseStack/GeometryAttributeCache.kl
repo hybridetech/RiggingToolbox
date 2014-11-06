@@ -11,13 +11,12 @@ object GeometryAttributeCache : CachePoint {
   Boolean disabled;
   Boolean valid;
 
-  String cachedAttributesNames[];
+  String attributesNames[];
   GeometryAttribute cachedAttributes[][];
   UInt32 attributeVersions[][];
 };
 
-function GeometryAttributeCache(String cachedAttributesNames[]) {
-  this.setCachedAttributeNames(cachedAttributesNames);
+function GeometryAttributeCache() {
 }
 
 
@@ -37,29 +36,30 @@ function Boolean GeometryAttributeCache.isValid() {
   return this.valid;
 }
 
-function GeometryAttributeCache.setCachedAttributeNames!(String cachedAttributesNames[]) {
-  this.cachedAttributesNames = cachedAttributesNames.clone();
+function GeometryAttributeCache.setCachedAttributeNames!(String attributesNames[]) {
+  this.attributesNames = attributesNames.clone();
 }
 
-function GeometryAttributeCache.update!(GeometrySet geomSet) {
+function GeometryAttributeCache.update!(GeometrySet geomSet, String attributesNames[]) {
   if(this.disabled)
     return;
   AutoProfilingEvent p(FUNC);
+  this.attributesNames = attributesNames.clone();
   this.cachedAttributes.resize(geomSet.size);
   this.attributeVersions.resize(geomSet.size);
   for(Integer i=0; i<geomSet.size; i++){
     Ref<GeometryAttributes> attributes = geomSet.get(i).getAttributes();
-    this.cachedAttributes[i].resize(this.cachedAttributesNames.size);
-    this.attributeVersions[i].resize(this.cachedAttributesNames.size);
+    this.cachedAttributes[i].resize(this.attributesNames.size);
+    this.attributeVersions[i].resize(this.attributesNames.size);
     for(Integer j=0; j<this.cachedAttributes.size; j++){
-      Ref<GeometryAttribute> attr = attributes.getAttribute(this.cachedAttributesNames[i]);
+      Ref<GeometryAttribute> attr = attributes.getAttribute(this.attributesNames[i]);
       if(attr){
         this.cachedAttributes[i][j] = cloneAttribute(attr);
         this.attributeVersions[i][j] = attr.getVersion();
       }
       else{
         // report("Warning: geometry does not have required attribute ");
-        report("Warning in GeometryAttributeCache.init: Geometry " +getGeomDebugName(geomSet.get(i))+ " at index :"+i+" does not have the following attribute:" + this.cachedAttributesNames[i]);// Maybe the deformer will generate it. 
+        report("Warning in GeometryAttributeCache.init: Geometry " +getGeomDebugName(geomSet.get(i))+ " at index :"+i+" does not have the following attribute:" + this.attributesNames[i]);// Maybe the deformer will generate it. 
       }
     }
   }
@@ -73,8 +73,8 @@ function GeometryAttributeCache.restore(io GeometrySet geomSet){
   AutoProfilingEvent p(FUNC);
   for(Integer i=0; i<geomSet.size; i++){
     Ref<GeometryAttributes> attributes = geomSet.get(i).getAttributes();
-    for(Integer j=0; j<this.cachedAttributesNames.size; j++){
-      Ref<GeometryAttribute> attr = attributes.getAttribute(this.cachedAttributesNames[j]);
+    for(Integer j=0; j<this.attributesNames.size; j++){
+      Ref<GeometryAttribute> attr = attributes.getAttribute(this.attributesNames[j]);
       if(this.cachedAttributes[i][j] != null){
         if(this.attributeVersions[i][j] != attr.getVersion()){
           Ref<Object> cachedAttr = this.cachedAttributes[i][j];
