@@ -18,6 +18,7 @@ object PolygonMeshPlaneGenerator : BaseGenerator {
 };
 
 function PolygonMeshPlaneGenerator(){
+  this.enableCaching = true;
 }
 
 function String[] PolygonMeshPlaneGenerator.getModifiedAttributes(){

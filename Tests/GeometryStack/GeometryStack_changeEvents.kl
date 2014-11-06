@@ -14,30 +14,13 @@ operator entry(){
    	stack.initCachePoints();
 
     EvalContext context();
-    {
-	    Geometry geometries[] = stack.evaluate(context);
-
-	    report("NumGeometries:" + geometries.size);
-	    for(Integer i=0; i<geometries.size; i++){
-	        report(geometries[i].getDesc(true, true));
-	    }
-	}
+    stack.evaluate(context);
 	pushDeformer.setPushDist(6.0);
-	{
-	    Geometry geometries[] = stack.evaluate(context);
+	stack.evaluate(context);
 
-	    report("NumGeometries:" + geometries.size);
-	    for(Integer i=0; i<geometries.size; i++){
-	        report(geometries[i].getDesc(true, true));
-	    }
-	}
 	
   StopFabricProfiling();
 
   report( GetEvalPathReport() );
-
-  ProfilingEvent events[](GetProfilingEvents());
-  for(Integer i=0; i<events.size; i++)
-    report( events[i] );
 }
 

@@ -20,6 +20,7 @@ function PolygonMeshSphereGenerator(){
   this.detail = 4;
   this.uvs = true;
   this.normals = true;
+  this.enableCaching = true;
 }
 
 function PolygonMeshSphereGenerator(Scalar radius, UInt32 detail, Boolean setNormals, Boolean setUVs){
@@ -27,6 +28,7 @@ function PolygonMeshSphereGenerator(Scalar radius, UInt32 detail, Boolean setNor
   this.detail = detail;
   this.uvs = setNormals;
   this.normals = setUVs;
+  this.enableCaching = true;
 }
 
 function String[] PolygonMeshSphereGenerator.getModifiedAttributes(){

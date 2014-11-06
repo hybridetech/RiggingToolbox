@@ -83,7 +83,7 @@ function GeometryStack.notify!(Notifier notifier, String type, String data) {
 			Notifier op = this.geomOperators[i];
 			if(op === notifier){
 				this.dirtyPoint = i;
-				for(Integer j=0; j<this.geomOperators.size; j++){
+				for(Integer j=i; j<this.geomOperators.size; j++){
 					if(this.cachePoints[j] != null)
 						this.cachePoints[j].invalidate();
 				}
@@ -126,8 +126,6 @@ function Geometry[] GeometryStack.evaluate!(EvalContext context) {
 			if(cachePoint != null && cachePoint.isValid())
 				cachePoint.restore(this.geometries);
 			else{
-
-				report("this.geomOperators[i].evaluate:" + this.geomOperators[i].type());
 				this.geomOperators[i].evaluate(context, this.geometries);
 				if(cachePoint != null)
 					cachePoint.init(this.geometries);
