@@ -227,6 +227,7 @@ function AlembicGeometryGenerator.addChildrenToSkeleton(String pathStr, String x
 /// \internal
 function AlembicGeometryGenerator.evaluate(EvalContext context, io GeometrySet geomSet){
 {
+  AutoProfilingEvent p(FUNC);
     // Check for an absolute file path, then a relative path.
     FilePath expandedPath = this.filePath.expandEnvVars();
     if(!expandedPath.exists()){

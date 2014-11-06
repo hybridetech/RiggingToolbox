@@ -45,6 +45,7 @@ function Ref<Object> GeometrySet.getMetaData( String name ) {
 
 /// sets a single object in the metadata
 function GeometrySet.setMetaData!( String name, Object value ) {
+  report("setMetaData:" + name);
   this.metaData[name] = value;
   this.version++;
 }

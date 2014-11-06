@@ -76,6 +76,28 @@ function UInt32 getGeomVersion(Geometry geometry) {
 
 
 
+
+function ThreadsafeMetaDataContainer getGeomMetaData(Geometry geometry) {
+  // Note: we need 'getVersion' to be part of the Geometry interface. 
+  PolygonMesh mesh = geometry;
+  if(mesh)
+    return mesh.metaData;
+  else{
+    Lines lines = geometry;
+    if(lines)
+      return lines.metaData;
+    else{
+      Points points = geometry;
+      if(points)
+        return points.metaData;
+    }
+  }
+  setError("Invalid Geometry type:" + geometry.type());
+  return null;
+}
+
+
+
 function String getGeomDebugName(Geometry geometry) {
   // Note: we need 'getVersion' to be part of the Geometry interface. 
   PolygonMesh mesh = geometry;

@@ -33,7 +33,7 @@ function String[] BaseGenerator.getModifiedAttributes(){
 
 /// Return true if the generation of the geometries is expensive and the results should be cached.
 function Boolean BaseGenerator.cacheResults(){
-	return false;
+	return true;
 }
 
 function BaseGenerator.evaluate(EvalContext context, io GeometrySet geomSet){

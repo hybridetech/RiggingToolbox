@@ -23,6 +23,7 @@
     "GeometryStack/ComputeNormalsDeformer.kl",
     "GeometryStack/ComputeTangentsDeformer.kl",
     
-    "GeometryStack/AlembicGeometryGenerator.kl"
+    "GeometryStack/AlembicGeometryGenerator.kl",
+    "GeometryStack/SkinningDeformer.kl"
   ]
 }

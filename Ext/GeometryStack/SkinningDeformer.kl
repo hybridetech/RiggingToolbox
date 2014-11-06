@@ -31,9 +31,9 @@ function String[] SkinningDeformer.getModifiedAttributes(){
 }
 
 function SkinningDeformer.setReferencePose!(Mat44 referencePose[]){
-  this.skinningMatrices.resize(referencePose.size);
+  this.invReferencePose.resize(referencePose.size);
   for (Integer i = 0; i < referencePose.size; i++)
-    this.invReferencePose[i] = referencePose.inverse();
+    this.invReferencePose[i] = referencePose[i].inverse();
   this.skinningMatrices.resize(referencePose.size);
 }
 
@@ -41,14 +41,14 @@ function SkinningDeformer.setReferencePoseFromSkeleton!(Skeleton skeleton){
   Size deformerIndices[] = skeleton.getDeformerIndices();
   Mat44 referencePose[];
   referencePose.resize(deformerIndices.size);
-  for (Integer i = 0; i < deformerIndices.size; i++) {
+  for (Integer i = 0; i < deformerIndices.size; i++)
     referencePose[i] = skeleton.getBone(deformerIndices[i]).referencePose.toMat44();
   this.setReferencePose(referencePose);
 }
 
 function SkinningDeformer.setPose!(Mat44 pose[]){
-  if(pose.size != this.referencePose.size){
-    setError('Pose count does not match the reference pose count referencePose:' + referencePose.size + " != " + pose.size);
+  if(pose.size != this.invReferencePose.size){
+    setError('Pose count does not match the reference pose count referencePose:' + this.invReferencePose.size + " != " + pose.size);
     return;
   }
   for (Integer i = 0; i < pose.size; i++) {
@@ -60,7 +60,7 @@ function SkinningDeformer.setPose!(Mat44 pose[]){
 
 /// The per-point operator that computes the linear blend skinning. 
 /// \internal
-operator skinPositions<<<index>>>(
+operator SkinningDeformer_skinPositions<<<index>>>(
   io Vec3 positions[],
   SkinningAttribute skinningAttr,
   Mat44 skinningPosAndNormMatrices[]
@@ -85,7 +85,7 @@ operator skinPositions<<<index>>>(
 
 /// The per-point operator that computes the linear blend skinning. 
 /// \internal
-operator skinPositionsAndNormals<<<index>>>(
+operator SkinningDeformer_skinPositionsAndNormals<<<index>>>(
   io Vec3 positions[],
   io Vec3 normals[],
   SkinningAttribute skinningAttr,
@@ -120,13 +120,13 @@ operator skinPositionsAndNormals<<<index>>>(
 /// \internal
 operator deformGeometries<<<index>>>(
   io GeometrySet geomSet,
-  Mat44 skinningMatrices[]
+  Mat44 skinningPosAndNormMatrices[]
 ){
   Ref<GeometryAttributes> attributes = geomSet.get(index).getAttributes();
 
   if( !attributes.has("skinningData") ){
     setError("ERROR: Geometry does not have skinningData");
-    return false;
+    return;
   }
   
   Vec3Attribute positionsAttribute = attributes.positionsAttribute;
@@ -134,7 +134,7 @@ operator deformGeometries<<<index>>>(
   SkinningAttribute skinningAttr = attributes.getAttribute("skinningData");
 
   if(normalsAttribute == null){
-    skinPositions<<<attributes.size()>>>(
+    SkinningDeformer_skinPositions<<<attributes.size()>>>(
       positionsAttribute.values,
       skinningAttr,
       skinningPosAndNormMatrices
@@ -142,7 +142,7 @@ operator deformGeometries<<<index>>>(
     positionsAttribute.incrementVersion();
   }
   else{
-    skinPositionsAndNormals<<<attributes.size()>>>(
+    SkinningDeformer_skinPositionsAndNormals<<<attributes.size()>>>(
       positionsAttribute.values,
       normalsAttribute.values,
       skinningAttr,
@@ -151,36 +151,40 @@ operator deformGeometries<<<index>>>(
     positionsAttribute.incrementVersion();
     normalsAttribute.incrementVersion();
   }
-  return true;
 }
 
 function SkinningDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
 
+  AutoProfilingEvent p(FUNC);
   if(this.dataVersion != geomSet.getMetaDataVersion()){
-    this.bindShapeTransforms.resize(geomSet.size);
+    // create an io this pointer so we can cache the values. 
+    Ref<SkinningDeformer> io_this = this;
+    io_this.bindShapeTransforms.resize(geomSet.size);
     for(Integer i=0; i<geomSet.size; i++){
-      BaseGeometry geometry = geomSet.get(i);
+      Geometry geometry = geomSet.get(i);
       Ref<GeometryAttributes> attributes = geometry.getAttributes();
       if( !attributes.has("skinningData") ){
-        setError("ERROR: Geometry does not have skinningData:" + geometry.debugName);
-        return false;
+        setError("ERROR: Geometry does not have skinningData:" + getGeomDebugName(geometry));
+        return;
       }
-      if(geometry.metaData.has('bindShapeTransform')){
-        GenericMat44Value bindShapeTransform = geometry.metaData.get('bindShapeTransform');
-        this.bindShapeTransforms[i] = bindShapeTransform.value;
+      ThreadsafeMetaDataContainer metaData = getGeomMetaData(geometry);
+      GenericMat44Value bindShapeTransform = metaData.get('bindShapeTransform');
+      if(bindShapeTransform){
+        io_this.bindShapeTransforms[i] = bindShapeTransform.value;
       }
     }
     if(geomSet.hasMetaData('skeleton')){
       Skeleton skeleton = geomSet.getMetaData('skeleton');
       if(skeleton)
-        this.setReferencePoseFromSkeleton(skeleton);
+        io_this.setReferencePoseFromSkeleton(skeleton);
     }
+    io_this.dataVersion = geomSet.getMetaDataVersion();
   }
 
   Mat44 skinningPosAndNormMatrices[];
   skinningPosAndNormMatrices.resize( this.skinningMatrices.size()*2 );
   for( UInt32 i = 0; i < this.skinningMatrices.size(); ++i ) {
-    skinningPosAndNormMatrices[i*2] = this.skinningMatrices[i] * this.bindShapeTransforms[i];
+    skinningPosAndNormMatrices[i*2] = this.skinningMatrices[i];// * this.bindShapeTransforms[i];
     skinningPosAndNormMatrices[i*2 + 1] = skinningPosAndNormMatrices[i*2];
     skinningPosAndNormMatrices[i*2 + 1].zeroTranslation();
   }
