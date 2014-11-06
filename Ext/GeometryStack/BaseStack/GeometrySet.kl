@@ -1,0 +1,32 @@
+/*
+ *  Copyright 2010-2014 Fabric Engine Inc. All rights reserved.
+ */
+
+require Geometry;
+
+object GeometrySet {
+  Geometry geometries[];
+
+  ///Container for holding various user data, such as the Skeleton.
+  ThreadsafeMetaDataContainer metaData;
+};
+
+/// returns the size of the contained value array
+inline Size GeometrySet.size() {
+  return this.geometries.size();
+}
+
+/// resizes the contained value array
+inline GeometrySet.resize!(Size newSize) {
+  this.geometries.resize(newSize);
+}
+
+/// returns an element the contained value array by index
+inline Geometry GeometrySet.get(Index index) {
+  return this.geometries[index];
+}
+
+/// sets an element the contained value array by index
+inline GeometrySet.set!(Index index, Geometry value) {
+  this.geometries[index] = value;
+}

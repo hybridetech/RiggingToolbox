@@ -29,10 +29,10 @@ function String[] SkinningDeformer.getModifiedAttributes(){
 }
 
 
-function SkinningDeformer.bind!(Geometry geometries[]){
-  this.bindShapeTransforms.resize(geometries.size);
-  for(Integer i=0; i<geometries.size; i++){
-    BaseGeometry geometry = geometries[i];
+function SkinningDeformer.bind!(GeometrySet geomSet){
+  this.bindShapeTransforms.resize(geomSet.size);
+  for(Integer i=0; i<geomSet.size; i++){
+    BaseGeometry geometry = geomSet.get(i);
     Ref<GeometryAttributes> attributes = geometry.getAttributes();
     if( !attributes.has("skinningData") ){
       setError("ERROR: Geometry does not have skinningData:" + geometry.debugName);
@@ -41,6 +41,10 @@ function SkinningDeformer.bind!(Geometry geometries[]){
     if(geometry.metaData.has('bindShapeTransform')){
       GenericMat44Value bindShapeTransform = geometry.metaData.get('bindShapeTransform');
       this.bindShapeTransforms[i] = bindShapeTransform.value;
+    }
+    if(geometry.metaData.has('referencePose')){
+      GenericMat44ArrayValue referencePose = geometry.metaData.get('referencePose');
+      this.setReferencePose(referencePose.value);
     }
   }
 }
@@ -123,10 +127,10 @@ operator skinPositionsAndNormals<<<index>>>(
 /// Computes the deformation of the character using linear blend skinning. 
 /// \internal
 operator deformGeometries<<<index>>>(
-  io Geometry geometries[],
+  io GeometrySet geomSet,
   Mat44 skinningMatrices[]
 ){
-  Ref<GeometryAttributes> attributes = geometries[index].getAttributes();
+  Ref<GeometryAttributes> attributes = geomSet.get(index).getAttributes();
 
   if( !attributes.has("skinningData") ){
     setError("ERROR: Geometry does not have skinningData");
@@ -158,7 +162,7 @@ operator deformGeometries<<<index>>>(
   return true;
 }
 
-function SkinningDeformer.evaluate(EvalContext context, io Geometry geometries[]){
+function SkinningDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
 
   Mat44 skinningPosAndNormMatrices[];
   skinningPosAndNormMatrices.resize( this.skinningMatrices.size()*2 );
@@ -168,6 +172,6 @@ function SkinningDeformer.evaluate(EvalContext context, io Geometry geometries[]
     skinningPosAndNormMatrices[i*2 + 1].zeroTranslation();
   }
 
-  deformGeometries<<<geometries.size()>>>(geometries, skinningPosAndNormMatrices);
+  deformGeometries<<<geomSet.size()>>>(geomSet, skinningPosAndNormMatrices);
 }
 

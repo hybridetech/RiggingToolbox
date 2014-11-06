@@ -35,10 +35,11 @@ function Boolean PolygonMeshPlaneGenerator.cacheResults(){
   return this.enableCaching;
 }
 
-function PolygonMeshPlaneGenerator.evaluate(EvalContext context, io Geometry geometries[]){
-  geometries.resize(1);
-  geometries[0] = PolygonMesh();
-  geometries[0].addPlane(Xfo(), this.length, this.width, this.lengthSections, this.widthSections, this.normals, this.uvs);
+function PolygonMeshPlaneGenerator.evaluate(EvalContext context, io GeometrySet geomSet){
+  PolygonMesh mesh();
+  mesh.addPlane(Xfo(), this.length, this.width, this.lengthSections, this.widthSections, this.normals, this.uvs);
+  geomSet.resize(1);
+  geomSet.set(0, mesh);
 }
 
 

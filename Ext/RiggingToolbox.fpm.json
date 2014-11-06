@@ -9,6 +9,7 @@
     "GeometryStack/BaseStack/StatisticsHelperFunctions.kl",
     "GeometryStack/BaseStack/Listener.kl",
     "GeometryStack/BaseStack/Notifier.kl",
+    "GeometryStack/BaseStack/GeometrySet.kl",
     "GeometryStack/BaseStack/GeometryOperator.kl",
     "GeometryStack/BaseStack/Generator.kl",
     "GeometryStack/BaseStack/Deformer.kl",

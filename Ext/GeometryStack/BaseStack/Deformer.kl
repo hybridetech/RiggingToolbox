@@ -16,8 +16,8 @@ interface Deformer {
 
 
 	/// Enables the deformer to bind itsself to the geometry, generating any bind data used during evaluation.
-	bind!(Geometry geometries[]);
-	evaluate(EvalContext context, io Geometry geometries[]);
+	bind!(GeometrySet geomSet);
+	evaluate(EvalContext context, io GeometrySet geomSet);
 
 	String saveJSON();
 	loadJSON!(String json);
@@ -37,12 +37,12 @@ function String[] BaseDeformer.getModifiedAttributes(){
 	return result;
 }
 
-function BaseDeformer.bind!(Geometry geometries[]){
+function BaseDeformer.bind!(GeometrySet geomSet){
 
 }
 
 
-function BaseDeformer.evaluate(EvalContext context, io Geometry geometries[]){
+function BaseDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
 
 }
 

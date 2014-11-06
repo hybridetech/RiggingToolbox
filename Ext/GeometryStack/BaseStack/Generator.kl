@@ -8,7 +8,7 @@ require Geometry;
 
 interface Generator {
 	Boolean cacheResults();
-	evaluate(EvalContext context, io Geometry geometries[]);
+// 	evaluate(EvalContext context, io GeometrySet geomSet);
 };
 
 object BaseGenerator : Notifier, Generator, GeometryOperator {
@@ -37,7 +37,7 @@ function Boolean BaseGenerator.cacheResults(){
 	return false;
 }
 
-function BaseGenerator.evaluate(EvalContext context, io Geometry geometries[]){
+function BaseGenerator.evaluate(EvalContext context, io GeometrySet geomSet){
 
 }
 

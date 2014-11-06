@@ -1,0 +1,16 @@
+Error: Geometry missing required attributes:["normals"]
+  1 kl.internal.String.SetErrorDataPtrAndLength.AS0()
+  2 function.setError.in_AS0.ST()
+  3 method.evaluate.io_AS0.UO_GeometryStack.in_AS0.OO_EvalContext() GeometryStack.kl:122
+  4 operator.entry() GeometryStack_missingRequiredAttributes.kl:13
+  5 kl.internal.entry.stub.cpu()
+Error: Error in PushDeformer_deformGeometries. Missing attributes.
+  1 kl.internal.String.SetErrorDataPtrAndLength.AS0()
+  2 function.setError.in_AS0.ST()
+  3 operator.PushDeformer_deformGeometries.in.UI32.io_AS0.OO_GeometrySet.in.F32() PushDeformer.kl:61
+  4 internal.PushDeformer_deformGeometries.stub.cpu.00()
+Error: GeometryStack/PushDeformer.kl:65:3: dereferenced null object
+  1 kl.internal.String.SetErrorDataPtrAndLength.AS0()
+  2 function.setError.in_AS0.ST()
+  3 operator.PushDeformer_deformGeometries.in.UI32.io_AS0.OO_GeometrySet.in.F32() PushDeformer.kl:65
+  4 internal.PushDeformer_deformGeometries.stub.cpu.00()

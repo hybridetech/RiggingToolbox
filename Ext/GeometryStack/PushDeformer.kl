@@ -51,10 +51,10 @@ operator PushDeformer_pushPositionsAlongNormals<<<index>>>(
 /// Per-geometry computation of the push. 
 /// \internal
 operator PushDeformer_deformGeometries<<<index>>>(
-  io Geometry geometries[],
+  io GeometrySet geomSet,
   Scalar push
 ){
-	Ref<GeometryAttributes> attributes = geometries[index].getAttributes();
+	Ref<GeometryAttributes> attributes = geomSet.get(index).getAttributes();
 	Vec3Attribute positionsAttribute = attributes.positionsAttribute;
 	Vec3Attribute normalsAttribute = attributes.normalsAttribute;
 	if(!positionsAttribute || !normalsAttribute){
@@ -68,9 +68,9 @@ operator PushDeformer_deformGeometries<<<index>>>(
 	positionsAttribute.incrementVersion();
 }
 
-function PushDeformer.evaluate(EvalContext context, io Geometry geometries[]){
+function PushDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
   AutoProfilingEvent p(FUNC);
-  PushDeformer_deformGeometries<<<geometries.size()>>>(geometries, this.push);
+  PushDeformer_deformGeometries<<<geomSet.size()>>>(geomSet, this.push);
 }
 
 

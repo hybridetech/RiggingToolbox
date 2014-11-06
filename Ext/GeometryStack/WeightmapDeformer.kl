@@ -25,8 +25,8 @@ function String[] WeightmapDeformer.getModifiedAttributes(){
 }
 
 
-function WeightmapDeformer.evaluate(EvalContext context, io Geometry geometries[]){
-  WeightmapDeformer_deformGeometries<<<geometries.size()>>>(geometries, this.push);
+function WeightmapDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
+  WeightmapDeformer_deformGeometries<<<geomSet.size()>>>(geomSet, this.push);
 }
 
 

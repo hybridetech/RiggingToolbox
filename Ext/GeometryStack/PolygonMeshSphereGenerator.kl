@@ -46,14 +46,14 @@ function Boolean PolygonMeshSphereGenerator.cacheResults(){
   return this.enableCaching;
 }
 
-function PolygonMeshSphereGenerator.evaluate(EvalContext context, io Geometry geometries[]){
+function PolygonMeshSphereGenerator.evaluate(EvalContext context, io GeometrySet geomSet){
   AutoProfilingEvent p(FUNC);
 
-  geometries.resize(1);
   PolygonMesh mesh();
   mesh.debugName = "Sphere";
   mesh.addSphere(Xfo(), this.radius, this.detail, this.normals, this.uvs);
-  geometries[0] = mesh;
+  geomSet.resize(1);
+  geomSet.set(0, mesh);
 }
 
 

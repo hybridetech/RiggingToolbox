@@ -35,35 +35,35 @@ function Boolean GeometryCache.isValid() {
   return this.valid;
 }
 
-function GeometryCache.init!(Geometry geometries[]) {
+function GeometryCache.init!(GeometrySet geomSet) {
   if(this.disabled)
     return;
   AutoProfilingEvent p(FUNC);
-  this.cachedGeometries.resize(geometries.size);
-  this.topologyVersions.resize(geometries.size);
-  for(Integer i=0; i<geometries.size; i++){
-    this.cachedGeometries[i] = cloneGeom(geometries[i]);
-    this.topologyVersions[i] = getGeomVersion(geometries[i]);
+  this.cachedGeometries.resize(geomSet.size);
+  this.topologyVersions.resize(geomSet.size);
+  for(Integer i=0; i<geomSet.size; i++){
+    this.cachedGeometries[i] = cloneGeom(geomSet.get(i));
+    this.topologyVersions[i] = getGeomVersion(geomSet.get(i));
   }
   this.valid = true;
 }
 
 /// Restores the entire geometry to the state found in the cache.
-function GeometryCache.restore(io Geometry geometries[]){
+function GeometryCache.restore(io GeometrySet geomSet){
   if(this.disabled)
     return;
   AutoProfilingEvent p(FUNC);
-  geometries.resize(this.cachedGeometries.size);
-  for(Integer i=0; i<geometries.size; i++){
-    copyFrom(geometries[i], this.cachedGeometries[i]);
+  geomSet.resize(this.cachedGeometries.size);
+  for(Integer i=0; i<geomSet.size; i++){
+    copyFrom(geomSet.get(i), this.cachedGeometries[i]);
   }
 }
 
 
-function GeometryCache.update!(io Geometry geometries[]) {
+function GeometryCache.update!(io GeometrySet geomSet) {
   if(this.valid)
-    this.init(geometries);
+    this.init(geomSet);
   else
-    this.restore(geometries);
+    this.restore(geomSet);
 }
 

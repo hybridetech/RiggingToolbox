@@ -16,7 +16,7 @@ function WrapDeformer(){
   this.threshold = 0.001;
 }
 
-function WrapDeformer.bind!(Geometry geometries[]){
+function WrapDeformer.bind!(GeometrySet geomSet){
 
 }
 
@@ -35,7 +35,7 @@ operator computeBinding<<<index>>>(
 
 function WrapDeformer.addTarget(EvalContext context, Geometry targetGeometry){
 
-  computeBinding<<<geometries.size()>>>(geometries, skinningPosAndNormMatrices);
+  computeBinding<<<geomSet.size()>>>(geomSet, skinningPosAndNormMatrices);
 }
 
 
@@ -51,11 +51,11 @@ operator applyDeltas<<<index>>>(
 
 
 operator deformGeometries<<<index>>>(
-  io Geometry geometries[],
+  io GeometrySet geomSet,
   UInt32ArrayAllocator deltasAllocator,
   Vec3 deltas[]
 ){
-  Ref<GeometryAttributes> attributes = geometries[index].getAttributes();
+  Ref<GeometryAttributes> attributes = geomSet.get(index).getAttributes();
   Vec3Attribute positionsAttribute = attributes.positionsAttribute;
   applyDeltas<<<attributes.size()>>>(
     positionsAttribute.values,
@@ -66,8 +66,8 @@ operator deformGeometries<<<index>>>(
   return true;
 }
 
-function WrapDeformer.evaluate(EvalContext context, io Geometry geometries[]){
-  deformGeometries<<<geometries.size()>>>(geometries, skinningPosAndNormMatrices);
+function WrapDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
+  deformGeometries<<<geomSet.size()>>>(geomSet, skinningPosAndNormMatrices);
 }
 
 

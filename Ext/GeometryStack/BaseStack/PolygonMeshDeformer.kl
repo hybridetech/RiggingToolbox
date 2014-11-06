@@ -10,10 +10,10 @@ object PolygonMeshDeformer : BaseDeformer {
 	UInt32 polyMeshIndices[];
 };
 
-function PolygonMeshDeformer.bind!(Geometry geometries[]){
+function PolygonMeshDeformer.bind!(GeometrySet geomSet){
 	this.polyMeshIndices.resize(0);
-	for(Integer i=0; i<geometries.size; i++){
-		if(geometries[i] != null && geometries[i].type() == PolygonMesh)
+	for(Integer i=0; i<geomSet.size; i++){
+		if(geomSet.get(i) != null && geomSet.get(i).type() == PolygonMesh)
 			this.polyMeshIndices.push(i);
 	}
 }

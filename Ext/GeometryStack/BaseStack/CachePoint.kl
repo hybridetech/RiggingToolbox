@@ -14,9 +14,9 @@ interface CachePoint  {
 
 	invalidate!();
 	Boolean isValid();
-	init!(Geometry geometries[]);
-	restore(io Geometry geometries[]);
-	update!(io Geometry geometries[]);
+	init!(GeometrySet geomSet);
+	restore(io GeometrySet geomSet);
+	update!(io GeometrySet geomSet);
 };
 
 

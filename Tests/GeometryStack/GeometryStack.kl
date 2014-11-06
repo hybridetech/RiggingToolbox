@@ -14,20 +14,20 @@ operator entry(){
 
     EvalContext context();
     {
-	    Geometry geometries[] = stack.evaluate(context);
+	    GeometrySet geomSet = stack.evaluate(context);
 
-	    report("NumGeometries:" + geometries.size);
-	    for(Integer i=0; i<geometries.size; i++){
-	        report(geometries[i].getDesc(true, true));
+	    report("NumGeometries:" + geomSet.size);
+	    for(Integer i=0; i<geomSet.size; i++){
+	        report(geomSet.get(i).getDesc(true, true));
 	    }
 	}
 	
 	{
-	    Geometry geometries[] = stack.evaluate(context);
+	    GeometrySet geomSet = stack.evaluate(context);
 
-	    report("NumGeometries:" + geometries.size);
-	    for(Integer i=0; i<geometries.size; i++){
-	        report(geometries[i].getDesc(true, true));
+	    report("NumGeometries:" + geomSet.size);
+	    for(Integer i=0; i<geomSet.size; i++){
+	        report(geomSet.get(i).getDesc(true, true));
 	    }
 	}
 }

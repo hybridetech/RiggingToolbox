@@ -8,7 +8,7 @@ require FabricStatistics;
 
 
 object GeometryStack : Listener {
-	Geometry geometries[];
+	GeometrySet geomSet;
 	GeometryOperator geomOperators[];
 	CachePoint cachePoints[];
 	UInt32 dirtyPoint;
@@ -26,6 +26,7 @@ function GeometryStack() {
 
 
 function GeometryStack.init!() {
+	this.geomSet = GeometrySet();
 	this.addAttributeDependency('normals', 'positions');
 	this.addAttributeDependency('tangents', 'positions');
 	this.addAttributeDependency('tangents', 'normals');
@@ -76,7 +77,7 @@ function GeometryStack.enableCachePoint!(UInt32 index) {
 }
 
 function GeometryStack.notify!(Notifier notifier, String type, String data) {
-	AutoProfilingEvent p(FUNC);
+	AutoProfilingEvent p(FUNC+":" + type);
 	switch(type){
 	case 'changed':
 		for(Integer i=0; i<this.geomOperators.size; i++){
@@ -99,7 +100,7 @@ function GeometryStack.notify!(Notifier notifier, String type, String data) {
 //  [ LoadAlembic, SkinningDeformer ]
 //                                  |
 //             [ LoadAlembic, WrapDeformer ] ->
-function Geometry[] GeometryStack.evaluate!(EvalContext context) {
+function GeometrySet GeometryStack.evaluate!(EvalContext context) {
   	AutoProfilingEvent p(FUNC);
 
 	this.dirtyPoint = 0;// force evlauation all the time.
@@ -110,10 +111,10 @@ function Geometry[] GeometryStack.evaluate!(EvalContext context) {
 			Boolean debug = true;
 			if(debug){
 				String requiredAttributes[] = this.geomOperators[i].getRequiredAttributes();
-				for(Integer k=0; k<this.geometries.size; k++){
+				for(Integer k=0; k<this.geomSet.size; k++){
 					String missingAttributes[];
 					for(Integer j=0; j<requiredAttributes.size; j++){
-						Ref<GeometryAttributes> attributes = this.geometries[k].getAttributes();
+						Ref<GeometryAttributes> attributes = this.geomSet.get(k).getAttributes();
 						if(!attributes.has(requiredAttributes[j]))
 							missingAttributes.push(requiredAttributes[j]);
 					}
@@ -124,16 +125,16 @@ function Geometry[] GeometryStack.evaluate!(EvalContext context) {
 
 			CachePoint cachePoint = this.cachePoints[i];
 			if(cachePoint != null && cachePoint.isValid())
-				cachePoint.restore(this.geometries);
+				cachePoint.restore(this.geomSet);
 			else{
-				this.geomOperators[i].evaluate(context, this.geometries);
+				this.geomOperators[i].evaluate(context, this.geomSet);
 				if(cachePoint != null)
-					cachePoint.init(this.geometries);
+					cachePoint.init(this.geomSet);
 			}
 			this.dirtyPoint++;
 		}
 	}
-	return this.geometries;
+	return this.geomSet;
 }
 
 

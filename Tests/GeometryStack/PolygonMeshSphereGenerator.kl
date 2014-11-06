@@ -6,12 +6,12 @@ operator entry(){
     PolygonMeshSphereGenerator sphereGenerator();
 
     EvalContext context();
-    Geometry geometries[];
-    sphereGenerator.evaluate(context, geometries);
+    GeometrySet geomSet;
+    sphereGenerator.evaluate(context, geomSet);
 
-    report("NumGeometries:" + geometries.size);
-    for(Integer i=0; i<geometries.size; i++){
-        report(geometries[i].getDesc(false, false));
+    report("NumGeometries:" + geomSet.size);
+    for(Integer i=0; i<geomSet.size; i++){
+        report(geomSet.get(i).getDesc(false, false));
     }
 }
 

@@ -28,7 +28,7 @@ function BlendShapesDeformer(){
 }
 
 
-function BlendShapesDeformer.bind!(Geometry geometries[]){
+function BlendShapesDeformer.bind!(GeometrySet geomSet){
 
 }
 
@@ -90,7 +90,7 @@ operator computeDeltas<<<index>>>(
 
 function BlendShapesDeformer.addTarget(EvalContext context, Geometry targetGeometry){
 
-  computeDeltas<<<geometries.size()>>>(geometries, skinningPosAndNormMatrices);
+  computeDeltas<<<geomSet.size()>>>(geomSet, skinningPosAndNormMatrices);
 }
 
 
@@ -106,11 +106,11 @@ operator applyDeltas<<<index>>>(
 
 
 operator deformGeometries<<<index>>>(
-  io Geometry geometries[],
+  io GeometrySet geomSet,
   UInt32ArrayAllocator indices,
   Vec3 deltas[]
 ){
-  Ref<GeometryAttributes> attributes = geometries[index].getAttributes();
+  Ref<GeometryAttributes> attributes = geomSet.get(index).getAttributes();
   Vec3Attribute positionsAttribute = attributes.positionsAttribute;
   applyDeltas<<<attributes.size()>>>(
     positionsAttribute.values,
@@ -121,8 +121,8 @@ operator deformGeometries<<<index>>>(
   return true;
 }
 
-function BlendShapesDeformer.evaluate(EvalContext context, io Geometry geometries[]){
-  deformGeometries<<<geometries.size()>>>(geometries, skinningPosAndNormMatrices);
+function BlendShapesDeformer.evaluate(EvalContext context, io GeometrySet geomSet){
+  deformGeometries<<<geomSet.size()>>>(geomSet, skinningPosAndNormMatrices);
 }
 
 
